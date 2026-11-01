@@ -1,0 +1,38 @@
+{
+  "id": "pet-sync",
+  "package": "dsh-pet-sync",
+  "version": "0.2.0",
+  "intent": "桌宠进程管理：查看状态、启动、停止、切换形态",
+  "inputs": [
+    "action"
+  ],
+  "outputs": [
+    "pet-status",
+    "process-state"
+  ],
+  "limits": [
+    "桌宠缺失时如实报告未运行，不伪造进程状态",
+    "不改桌宠的行为规则",
+    "工具已合并为单入口 pet(action)，旧 pet_status/pet_start/pet_stop/pet_form/pet_say 不再注册"
+  ],
+  "failureModes": [
+    {
+      "code": "PET_MISSING",
+      "meaning": "桌宠程序或配置缺失",
+      "retry": "报告缺失，等待安装"
+    },
+    {
+      "code": "PET_SPAWN_FAILED",
+      "meaning": "进程拉起失败",
+      "retry": "退避重试"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-11-01T17:20:00+08:00"
+}

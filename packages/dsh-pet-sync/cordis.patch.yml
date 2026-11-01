@@ -1,0 +1,5 @@
+# dsh-pet-sync 补丁层：把插件挂进 profile 的加载树
+# 只做进程看护，不改 DSH 行为；卸载/退出时停掉桌宠。
+- insert:
+    - id: dsh-pet-sync
+      name: dsh-pet-sync

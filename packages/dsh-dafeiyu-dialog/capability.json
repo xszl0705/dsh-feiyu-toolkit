@@ -1,0 +1,35 @@
+{
+  "id": "dialog",
+  "package": "dsh-dafeiyu-dialog",
+  "version": "0.1.0",
+  "intent": "跨渠道对话记录：追加消息、按会话读取最近若干条",
+  "inputs": [
+    "conversation",
+    "role",
+    "text"
+  ],
+  "outputs": [
+    "recent-messages"
+  ],
+  "limits": [
+    "只存对话文本与角色，不存推理过程",
+    "按会话隔离，不跨会话泄漏"
+  ],
+  "failureModes": [
+    {
+      "code": "DIALOG_WRITE_FAILED",
+      "meaning": "落盘失败，当前回复照常进行",
+      "retry": "下次写入重试"
+    }
+  ],
+  "scope": [
+    "owner",
+    "group",
+    "private"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-10-31T13:45:00+08:00"
+}

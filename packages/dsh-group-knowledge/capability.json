@@ -1,0 +1,22 @@
+{
+  "id": "knowledge",
+  "package": "dsh-group-knowledge",
+  "version": "0.1.0",
+  "intent": "群知识库：按群作用域存储与检索群聊公开内容（链接摘要、图片描述）",
+  "inputs": ["text-query", "url", "image-caption"],
+  "outputs": ["knowledge-hits", "ingest-result"],
+  "limits": [
+    "只收群聊公开内容，不碰私有记忆",
+    "按群隔离：查询必须带 groupId，无群号时返回空",
+    "跨群共享默认关闭，需显式 allowShared",
+    "抓取走公网地址校验 + 字节上限"
+  ],
+  "failureModes": [
+    { "code": "KNOWLEDGE_DB_UNAVAILABLE", "meaning": "数据库打不开", "retry": "下次 apply 重建" },
+    { "code": "NON_PUBLIC_ADDRESS", "meaning": "链接解析到内网/回环地址", "retry": "不重试，直接拒绝" },
+    { "code": "RESPONSE_TOO_LARGE", "meaning": "抓取内容超过字节上限", "retry": "不重试" }
+  ],
+  "scope": ["group"],
+  "cost": { "cpu": "low", "network": "fetch-on-ingest" },
+  "changedAt": "2026-10-31T15:20:00+08:00"
+}

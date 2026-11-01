@@ -1,0 +1,22 @@
+{
+  "id": "autostart",
+  "package": "dsh-service-autostart",
+  "version": "0.1.0",
+  "intent": "服务自愈：QQ（NapCat）与微心跳没在跑就静默拉起，带冷却与失败上限",
+  "inputs": ["service-name", "caller-config"],
+  "outputs": ["launched", "cooldown", "up", "starting", "missing-launcher", "error"],
+  "limits": [
+    "只在调用方要求时启动，不自己定时拉起",
+    "账号风控期由调用方关掉（config.autostart.enabled=false）",
+    "同一服务冷却期内不重复拉，避免多实例互踢",
+    "失败 8 次后降到 10 分钟一次，不无限重试"
+  ],
+  "failureModes": [
+    { "code": "MISSING_LAUNCHER", "meaning": "启动脚本或可执行文件不存在", "retry": "不重试，报告路径" },
+    { "code": "SPAWN_EPERM", "meaning": "受限环境禁止拉起子进程", "retry": "不重试，如实报错" },
+    { "code": "COOLDOWN", "meaning": "冷却期内", "retry": "等冷却结束" }
+  ],
+  "scope": ["owner"],
+  "cost": { "cpu": "low", "network": "localhost" },
+  "changedAt": "2026-10-31T16:20:00+08:00"
+}

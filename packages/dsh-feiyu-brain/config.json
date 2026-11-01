@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "routing": {
+    "localEnabled": true,
+    "localOnlyGreeting": true,
+    "escalateOnReasoningLeak": true,
+    "maxLocalChars": 12
+  },
+  "context": {
+    "maxInputTokens": 2000,
+    "memoryTopK": 5,
+    "recentCrossChannel": 6
+  },
+  "reflection": {
+    "enabled": true,
+    "at": "22:30",
+    "maxMemories": 3,
+    "minImportance": 0.6
+  },
+  "group": {
+    "motiveThreshold": 0.6,
+    "cooldownMinutes": 30
+  },
+  "observability": { "enabled": true }
+}

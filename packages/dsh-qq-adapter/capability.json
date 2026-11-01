@@ -1,0 +1,50 @@
+{
+  "id": "qq",
+  "package": "dsh-qq-adapter",
+  "version": "0.2.0",
+  "intent": "收发 QQ 消息：群内 @ 接话、非 @ 交微心跳、陌生人私聊先问主人",
+  "inputs": [
+    "message-event",
+    "image"
+  ],
+  "outputs": [
+    "reply",
+    "vision-caption",
+    "approval-request"
+  ],
+  "limits": [
+    "不能主动加好友或拉群",
+    "账号风控期不自动拉起 NapCat",
+    "同一条消息最多发送一次",
+    "群知识由 dsh-group-knowledge 提供，本插件只做消费；该插件缺席时回退自己开库",
+    "工具已合并为单入口 qq(action)，旧名不再注册"
+  ],
+  "failureModes": [
+    {
+      "code": "NAPCAT_DOWN",
+      "meaning": "ws 3001 不可达",
+      "retry": "退避重连，冷却后尝试拉起"
+    },
+    {
+      "code": "RATE_LIMITED",
+      "meaning": "本地限频命中",
+      "retry": "等待下一分钟"
+    },
+    {
+      "code": "ACCOUNT_RESTRICTED",
+      "meaning": "账号被平台限制功能",
+      "retry": "停止自动拉起，等人工处理"
+    }
+  ],
+  "scope": [
+    "group",
+    "private",
+    "owner"
+  ],
+  "cost": {
+    "cpu": "medium",
+    "network": "ws",
+    "tokens": "variable"
+  },
+  "changedAt": "2026-11-01T17:40:00+08:00"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "mood",
+  "package": "dsh-feiyu-mood-lite",
+  "version": "0.4.0",
+  "intent": "评估心情值并给出表达强度，让语气随情绪变化",
+  "inputs": [
+    "conversation-summary",
+    "events"
+  ],
+  "outputs": [
+    "mood-value",
+    "expression-strength"
+  ],
+  "limits": [
+    "只影响语气强弱，不改立场和原则",
+    "不编造心情变化原因"
+  ],
+  "failureModes": [
+    {
+      "code": "MOOD_SCAN_FAILED",
+      "meaning": "扫描对话失败",
+      "retry": "下一轮再试，保留上次心情"
+    }
+  ],
+  "scope": [
+    "owner",
+    "group",
+    "private"
+  ],
+  "cost": {
+    "cpu": "low",
+    "tokens": "small"
+  },
+  "changedAt": "2026-10-31T13:45:00+08:00"
+}

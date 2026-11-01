@@ -1,0 +1,24 @@
+{
+  "id": "screenshot",
+  "package": "dsh-screenshot",
+  "version": "0.1.2",
+  "intent": "截图：把当前屏幕抓成 PNG，模型可直接读；输入框左下角的「截图」按钮把图放进附件栏",
+  "inputs": ["window", "maxWidth", "noScale", "delay"],
+  "outputs": ["png-path", "width", "height", "window-title"],
+  "limits": [
+    "只截本机屏幕，不截虚拟显示器之外的区域",
+    "默认缩到 1400px 宽，除非显式要求不缩放",
+    "截图时先让桌宠隐藏，拍完再放出来",
+    "一次只跑一张，忙时直接报「截图进行中」，不排队",
+    "只保留最近 80 张 PNG，更早的自动清理",
+    "工具已合并为单入口 screenshot(action)，旧名不再注册"
+  ],
+  "failureModes": [
+    { "code": "NO_MATCHING_WINDOW", "meaning": "没找到标题匹配的窗口", "retry": "如实报错，不猜窗口" },
+    { "code": "CAPTURE_TIMEOUT", "meaning": "截图脚本超时", "retry": "如实报错" },
+    { "code": "CAPTURE_BUSY", "meaning": "上一张还没拍完", "retry": "HTTP 429，稍后再试" }
+  ],
+  "scope": ["owner", "private", "session"],
+  "cost": { "cpu": "low", "network": "none", "tokens": "variable" },
+  "changedAt": "2026-11-01T17:40:00+08:00"
+}

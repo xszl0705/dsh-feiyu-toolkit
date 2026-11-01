@@ -1,0 +1,15 @@
+{
+  "name": "dsh-pet-hub",
+  "version": "0.3.0",
+  "description": "桌宠侧的「三合一」状态卡与进程/心情/朗读数据源；不改 DSH 页面，卡片画在桌宠身上。",
+  "type": "module",
+  "main": "index.js",
+  "files": ["index.js", "lib", "config.json", "cordis.patch.yml", "README.md", "pet-card"],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

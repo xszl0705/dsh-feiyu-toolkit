@@ -1,0 +1,28 @@
+﻿# 杩愯鏃朵笌鏈湴鏁版嵁
+node_modules/
+.tmp/
+__pycache__/
+*.pyc
+*.log
+
+# 娴嬭瘯浜х墿
+tests/_out/
+
+# 鎸夋満鍣ㄧ敓鎴愮殑渚濊禆鐩綍锛堢敤 scripts/setup-pylibs.ps1 閲嶅缓锛?
+packages/dsh-draw/pylibs/
+
+# 鏈湴瀹為檯浣跨敤鐨勯厤缃紙妯℃澘鏄?*.example.*锛?
+packages/dsh-comfy/extra-model-paths.yaml
+
+# 缂栬緫鍣ㄤ笌绯荤粺
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 璋冭瘯娈嬬暀锛堣浆鍌ㄣ€佸揩鐓с€佹祴璇曠姸鎬侊級
+**/_debug/
+*.snapshot
+
+# 测试临时目录（含运行期生成的对话记录）
+**/.tmp*/

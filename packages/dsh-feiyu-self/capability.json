@@ -1,0 +1,43 @@
+{
+  "id": "self",
+  "package": "dsh-feiyu-self",
+  "version": "0.1.0",
+  "intent": "回答我是谁、会什么、不会什么、最近改了什么；维护决策日志",
+  "inputs": [
+    "query",
+    "decision-entry"
+  ],
+  "outputs": [
+    "status",
+    "capabilities",
+    "limits",
+    "history",
+    "check"
+  ],
+  "limits": [
+    "不记录对话正文，只记决策与结果",
+    "拿不到的数据一律标 unknown，不推测",
+    "不自动修改任何配置或代码",
+    "工具已合并为单入口 self(action)，旧名不再注册"
+  ],
+  "failureModes": [
+    {
+      "code": "SNAPSHOT_STALE",
+      "meaning": "定时刷新没跑起来，快照过期",
+      "retry": "下次 apply 或手动 refresh 重建"
+    },
+    {
+      "code": "CAPABILITIES_UNREADABLE",
+      "meaning": "capabilities.json 损坏或不可读",
+      "retry": "退回内存声明，并在快照里标 stale"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-11-01T17:40:00+08:00"
+}

@@ -1,0 +1,42 @@
+{
+  "id": "memory",
+  "package": "dsh-memory-unified",
+  "version": "0.7.0",
+  "intent": "长期记忆：写入、检索、去重、软删除、体检、导入导出",
+  "inputs": [
+    "text",
+    "folder",
+    "keywords"
+  ],
+  "outputs": [
+    "memory-hits",
+    "digest",
+    "export"
+  ],
+  "limits": [
+    "敏感内容在写入边界直接拒绝",
+    "没有任何词面命中时返回空，不硬凑",
+    "只记录用户明确交代的事实，不记录对话正文以外的推测",
+    "工具面只有单入口 memory(action)：九个旧工具名不再注册，未知 action 返回 { ok:false }"
+  ],
+  "failureModes": [
+    {
+      "code": "MEMORY_SENSITIVE",
+      "meaning": "内容命中敏感规则被拒",
+      "retry": "不重试，返回 rejected"
+    },
+    {
+      "code": "MEMORY_EMPTY",
+      "meaning": "文本为空",
+      "retry": "不重试"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-11-01T18:20:00+08:00"
+}

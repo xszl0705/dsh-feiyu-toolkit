@@ -1,0 +1,5 @@
+# dsh-comfy —— DSH bundle patch
+# 纯 Host 插件；工具由 ctx.effect 托管，禁用即卸载。
+- insert:
+    - id: dsh-comfy
+      name: dsh-comfy

@@ -1,0 +1,5 @@
+# dsh-pet-diary 补丁层
+# 只注册工具，不改宿主行为
+- insert:
+    - id: dsh-pet-diary
+      name: dsh-pet-diary

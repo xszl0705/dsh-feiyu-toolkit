@@ -1,0 +1,6 @@
+# dsh-pet-hub 补丁层：只挂宿主半端（HTTP 端点）
+# 客户端浮层（client.js）本次先不声明 dsh.client —— 第一步只验证宿主侧不报错，
+# 第二步确认页面加载通道后再启用，避免再次出现「插件首载抛错」。
+- insert:
+    - id: dsh-pet-hub
+      name: dsh-pet-hub

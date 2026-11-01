@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "maxTokens": 1000,
+  "installClientContext": true,
+  "vision": {
+    "maxImageBytes": 8388608,
+    "timeoutMs": 30000
+  }
+}

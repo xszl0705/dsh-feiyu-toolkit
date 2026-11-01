@@ -1,0 +1,30 @@
+{
+    "name":  "dsh-qq-adapter",
+    "version":  "0.2.0",
+    "description":  "QQ 渠道适配器（NapCat / OneBot 11）：收消息 → 主体内核 compose → 回复 → 写 chatlog。同一套人格与记忆，只换渠道。",
+    "type":  "module",
+    "main":  "index.js",
+    "files":  [
+                  "index.js",
+                  "lib",
+                  "config.json",
+                  "cordis.patch.yml",
+                  "README.md"
+              ],
+    "dsh":  {
+                "bundle":  {
+                               "patch":  "./cordis.patch.yml"
+                           }
+            },
+    "keywords":  [
+                     "dsh",
+                     "dsh-plugin",
+                     "qq",
+                     "onebot",
+                     "napcat"
+                 ],
+    "engines":  {
+                    "node":  "\u003e=20"
+                },
+    "license":  "MIT"
+}

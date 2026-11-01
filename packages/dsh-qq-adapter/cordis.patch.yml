@@ -1,0 +1,4 @@
+# dsh-qq-adapter 补丁层
+- insert:
+    - id: dsh-qq-adapter
+      name: dsh-qq-adapter

@@ -1,0 +1,23 @@
+{
+  "id": "playground",
+  "package": "dsh-playground",
+  "version": "0.1.0",
+  "intent": "试验区管理：启停隔离 profile 实例、检查组合配置、往试验区装插件",
+  "inputs": ["profile-name", "package-name", "source-dir"],
+  "outputs": ["pid", "url", "composed-entries", "install-checks"],
+  "limits": [
+    "默认只动 verifyx，不碰 desktop",
+    "只杀自己记下的 pid，不按进程名全杀",
+    "不自动启动，必须显式调用",
+    "装插件只改指定 profile 的 package.json 和 junction",
+    "工具已合并为单入口 playground(action)，旧名不再注册"
+  ],
+  "failureModes": [
+    { "code": "PROFILE_MISSING", "meaning": "profile 目录不存在", "retry": "不重试，报路径" },
+    { "code": "BOOT_TIMEOUT", "meaning": "端口在超时内没起来", "retry": "看 profile 日志后重试" },
+    { "code": "SPAWN_FAILED", "meaning": "拉不起进程", "retry": "检查 exe / cli 路径" }
+  ],
+  "scope": ["owner"],
+  "cost": { "cpu": "low", "network": "localhost" },
+  "changedAt": "2026-11-01T17:40:00+08:00"
+}

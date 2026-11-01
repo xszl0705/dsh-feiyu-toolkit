@@ -1,0 +1,26 @@
+{
+  "dir": "",
+  "maxEntryChars": 2000,
+  "salt": "",
+  "dailyHint": false,
+  "retryMinutes": 20,
+  "maxAttempts": 3,
+  "routines": [
+    {
+      "id": "daily",
+      "enabled": true,
+      "time": "22:00",
+      "kind": "daily",
+      "maxChars": 500,
+      "maxChats": 80
+    },
+    {
+      "id": "work",
+      "enabled": false,
+      "time": "18:30",
+      "kind": "work",
+      "maxChars": 800,
+      "maxChats": 120
+    }
+  ]
+}

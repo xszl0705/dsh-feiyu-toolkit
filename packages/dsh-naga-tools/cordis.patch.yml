@@ -1,0 +1,5 @@
+# dsh-naga-tools —— DSH bundle patch
+# 插入一个纯 Host 插件行；三个工具由 ctx.effect 托管，禁用即卸载。
+- insert:
+    - id: dsh-naga-tools
+      name: dsh-naga-tools

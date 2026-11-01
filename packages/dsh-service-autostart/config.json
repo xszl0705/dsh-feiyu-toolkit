@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "napcat": {
+    "enabled": true,
+    "root": "",
+    "launcher": "start-hidden.vbs",
+    "port": 3001,
+    "webuiPort": 6099,
+    "cooldownMs": 30000,
+    "slowCooldownMs": 600000,
+    "fastFailures": 8
+  },
+  "mindLoop": {
+    "enabled": false,
+    "script": "",
+    "node": "",
+    "pidFile": "",
+    "cooldownMs": 600000
+  }
+}

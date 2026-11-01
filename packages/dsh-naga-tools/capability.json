@@ -1,0 +1,42 @@
+{
+  "id": "naga",
+  "package": "dsh-naga-tools",
+  "version": "0.1.0",
+  "intent": "启动本机应用、查时间天气、执行固定系统动作",
+  "inputs": [
+    "app-name",
+    "city",
+    "action"
+  ],
+  "outputs": [
+    "launch-result",
+    "weather",
+    "system-action"
+  ],
+  "limits": [
+    "只做固定动作，不接受任意命令",
+    "不修改系统设置",
+    "不读用户文件",
+    "工具已合并为单入口 naga(action)，旧名不再注册"
+  ],
+  "failureModes": [
+    {
+      "code": "APP_NOT_FOUND",
+      "meaning": "开始菜单里没有匹配项",
+      "retry": "返回候选列表"
+    },
+    {
+      "code": "SPAWN_EPERM",
+      "meaning": "受限环境禁止启动进程",
+      "retry": "不重试，如实报错"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "weather-only"
+  },
+  "changedAt": "2026-11-01T17:40:00+08:00"
+}

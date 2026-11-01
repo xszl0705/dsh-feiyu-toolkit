@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "autoStart": true,
+  "stopOnExit": true,
+  "form": "pet",
+  "petDir": "",
+  "pythonw": ""
+}

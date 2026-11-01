@@ -1,0 +1,23 @@
+{
+  "id": "feiyu-look",
+  "package": "dsh-feiyu-look",
+  "version": "0.1.0",
+  "intent": "在输入框上方挂一条只读状态条，显示心情 / 记忆 / 知识 / 技能 / 桌宠五项现状",
+  "inputs": [],
+  "outputs": ["GET /dsh-feiyu-look/state（JSON，供前端状态条读取）"],
+  "limits": [
+    "只读：不写任何插件状态，也不改变心情或记忆",
+    "不改宿主页面 DOM，只注册一个 slot",
+    "数据来自各插件自己声明，缺失就显示空，不自行探测"
+  ],
+  "failureModes": [
+    { "code": "STATE_SOURCE_MISSING", "meaning": "某个数据源插件没装或没声明", "retry": "该格显示为空，不影响其它格" },
+    { "code": "ROUTE_UNAVAILABLE", "meaning": "webServer 不可用", "retry": "不注册端点，状态条不出现" }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-11-01T10:00:00+08:00"
+}

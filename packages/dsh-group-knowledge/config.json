@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "dbFile": "",
+  "maxPerQuery": 3,
+  "ingestLinks": true,
+  "allowShared": false
+}

@@ -1,0 +1,34 @@
+{
+  "id": "draw",
+  "package": "dsh-draw",
+  "version": "0.1.0",
+  "intent": "画需要准确数字与文字的数据图、排版卡片，落盘成 PNG 并返回路径",
+  "inputs": ["series", "labels", "title", "rows", "body"],
+  "outputs": ["png-path"],
+  "limits": [
+    "只画图表与排版卡片，不生成插画/写实图（那属于 ComfyUI 或云生图 API）",
+    "依赖本机 Python + 插件自带 pylibs（matplotlib/Pillow），不接受 pip 安装",
+    "输出只回路径，不回 base64，不把图片内容塞进上下文",
+    "不联网、不调用任何外部服务"
+  ],
+  "failureModes": [
+    { "code": "PYTHON_NOT_FOUND", "meaning": "找不到 Python 解释器", "retry": "在 config.json 配 pythonPath 或设环境变量 DSH_PYTHON，然后重启宿主" },
+    { "code": "NO_DATA", "meaning": "series / rows 为空或全空", "retry": "补齐数据再调用" },
+    { "code": "BAD_INPUT", "meaning": "参数不是合法 JSON，或 data 里有非数字", "retry": "修正入参" },
+    { "code": "TIMEOUT", "meaning": "渲染超时（默认 35s）", "retry": "减小数据量或降低 dpi" },
+    { "code": "RENDER_FAILED", "meaning": "matplotlib/Pillow 渲染异常", "retry": "检查 series 的 data 长度是否与 labels 一致" },
+    { "code": "NO_FONT", "meaning": "系统里找不到中文字体", "retry": "装微软雅黑或黑体" },
+    { "code": "NO_RESULT", "meaning": "Python 进程结束了但没写结果文件", "retry": "检查 pylibs 是否完整；重跑 tests/run-all.mjs 看细节" },
+    { "code": "SCRIPT_MISSING", "meaning": "lib/py 下的渲染脚本缺失", "retry": "重新安装插件" },
+    { "code": "SPAWN_FAILED", "meaning": "子进程起不来（沙箱或解释器问题）", "retry": "确认 bridge.js 里 stdio 是 'ignore'（pipe 会 EPERM）" },
+    { "code": "BAD_RESULT", "meaning": "结果文件不是合法 JSON", "retry": "看 error 里附带的片段定位" },
+    { "code": "IO_FAILED", "meaning": "写 spec 文件失败", "retry": "检查磁盘空间与目录权限" }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low",
+    "network": "none",
+    "disk": "<200KB/张"
+  },
+  "changedAt": "2026-11-01T12:00:00+08:00"
+}

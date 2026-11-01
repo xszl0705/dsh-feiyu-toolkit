@@ -1,0 +1,5 @@
+# dsh-memory-unified 补丁层
+# 只注册工具，不改宿主行为；不接管 system prompt（autoRecall 默认关）。
+- insert:
+    - id: dsh-memory-unified
+      name: dsh-memory-unified

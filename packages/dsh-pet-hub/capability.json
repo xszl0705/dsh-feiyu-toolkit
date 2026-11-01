@@ -1,0 +1,33 @@
+{
+  "id": "pet-hub",
+  "package": "dsh-pet-hub",
+  "version": "0.3.0",
+  "intent": "桌宠 UI 与本地 HTTP 接口：状态、客户端脚本、宠物页",
+  "inputs": [
+    "http-request"
+  ],
+  "outputs": [
+    "json-status",
+    "client-js"
+  ],
+  "limits": [
+    "只监听本机回环地址",
+    "不提供任意文件读取",
+    "不改桌宠行为规则"
+  ],
+  "failureModes": [
+    {
+      "code": "WEB_SERVER_UNAVAILABLE",
+      "meaning": "宿主 webServer 未就绪",
+      "retry": "延迟重试挂载"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "localhost"
+  },
+  "changedAt": "2026-10-31T13:45:00+08:00"
+}

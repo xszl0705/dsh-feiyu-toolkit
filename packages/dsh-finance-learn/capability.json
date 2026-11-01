@@ -1,0 +1,25 @@
+{
+  "id": "finance-learn",
+  "package": "dsh-finance-learn",
+  "version": "0.1.0",
+  "intent": "查行情/K线/指数/宏观，管理概念卡并按间隔重复安排复习",
+  "inputs": ["symbol", "period", "card-title", "rating"],
+  "outputs": ["quote", "kline", "index", "macro", "card", "review-schedule"],
+  "limits": [
+    "不提供投资建议、不预测价格、不推荐个股",
+    "行情来自腾讯财经，可能延迟或休市",
+    "宏观来自世界银行年频数据，滞后约一年",
+    "只读外部数据，不下单、不登录券商"
+  ],
+  "failureModes": [
+    { "code": "UPSTREAM_TIMEOUT", "meaning": "8 秒内上游没返回", "retry": "回退上次缓存并标注可能过期" },
+    { "code": "NO_BARS", "meaning": "代码有误或该市场没有 K 线", "retry": "不重试，如实报错" },
+    { "code": "DB_UNAVAILABLE", "meaning": "SQLite 库打不开", "retry": "下次 apply 重建" }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low",
+    "network": "quote/kline/macro-only"
+  },
+  "changedAt": "2026-11-01T00:50:00+08:00"
+}

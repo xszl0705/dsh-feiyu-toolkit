@@ -1,0 +1,4 @@
+# dsh-service-autostart 补丁层
+- insert:
+    - id: dsh-service-autostart
+      name: dsh-service-autostart

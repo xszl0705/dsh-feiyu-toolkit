@@ -1,0 +1,27 @@
+{
+  "name": "dsh-screenshot",
+  "version": "0.1.2",
+  "description": "给 DSH 用的截图工具：全屏 / 指定窗口，存到工作区并返回路径，模型可直接读图。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "lib", "scripts", "config.json", "cordis.patch.yml", "README.md", "capability.json"],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": ["slots"],
+      "external": ["react"]
+    }
+  },
+  "keywords": ["dsh", "dsh-plugin", "screenshot", "vision"],
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

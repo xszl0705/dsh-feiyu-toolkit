@@ -1,0 +1,33 @@
+{
+  "strength": 0.9,
+  "channels": {
+    "client": {
+      "label": "客户端（DSH 对话）",
+      "length": "按需，允许长",
+      "tone": "中性、专业、结论先行",
+      "emoji": false,
+      "maxChars": 0
+    },
+    "pet": {
+      "label": "桌宠气泡（会被 TTS 念出来）",
+      "length": "一句话",
+      "tone": "外放一点、口语",
+      "emoji": false,
+      "maxChars": 18
+    },
+    "qq": {
+      "label": "QQ 私聊/群聊",
+      "length": "短句口语",
+      "tone": "熟人感，可以带一点表情",
+      "emoji": true,
+      "maxChars": 120
+    },
+    "bili": {
+      "label": "B 站评论/私信",
+      "length": "面向观众",
+      "tone": "公共场合的礼貌",
+      "emoji": false,
+      "maxChars": 300
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "brain",
+  "package": "dsh-feiyu-brain",
+  "version": "0.1.0",
+  "intent": "意图分类、路由决策、上下文组装、反思、按日统计",
+  "inputs": [
+    "text",
+    "conversation",
+    "scope"
+  ],
+  "outputs": [
+    "route",
+    "context",
+    "stats",
+    "reflection"
+  ],
+  "limits": [
+    "不训练模型，只做调用与编排",
+    "反思只写记忆，不改配置和代码",
+    "没有记忆服务时如实报 memory-unavailable，不虚报成功"
+  ],
+  "failureModes": [
+    {
+      "code": "LLM_UNAVAILABLE",
+      "meaning": "宿主 llm 服务不可用",
+      "retry": "退避重试"
+    },
+    {
+      "code": "REFLECTION_FAILED",
+      "meaning": "反思失败或写入未确认",
+      "retry": "下次任务重试"
+    }
+  ],
+  "scope": [
+    "owner",
+    "group",
+    "private"
+  ],
+  "cost": {
+    "cpu": "medium",
+    "tokens": "variable"
+  },
+  "changedAt": "2026-10-31T13:45:00+08:00"
+}

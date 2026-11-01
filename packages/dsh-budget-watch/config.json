@@ -1,0 +1,8 @@
+{
+  "sessionsRoot": "",
+  "stepsWarn": 500,
+  "stepsHard": 800,
+  "tokensWarn": 200000000,
+  "perStepWarn": 400000,
+  "cacheRateWarn": 0.7
+}

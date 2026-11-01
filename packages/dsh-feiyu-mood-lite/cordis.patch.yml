@@ -1,0 +1,5 @@
+# dsh-feiyu-mood-lite 补丁层：把插件挂进 profile 的加载树
+# 只读写 ~/.dsh/feiyu-mood/state.json，并往系统提示词里加一段“当前心情”。
+- insert:
+    - id: dsh-feiyu-mood-lite
+      name: dsh-feiyu-mood-lite
