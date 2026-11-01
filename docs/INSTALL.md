@@ -397,3 +397,87 @@ Windows 自带 GDI+，不需要额外依赖。
 ```
 
 `blocker = 0` 才算干净。它会揪出硬编码的本机路径。
+
+---
+
+## 10. 从旧版本升级
+
+### 10.1 最省事：跑升级脚本
+
+```powershell
+# 目录本身是 git 仓库
+pwsh -File scripts\upgrade.ps1
+
+# 你是下载 zip 解压的（不是 git）
+pwsh -File scripts\upgrade.ps1 -SourceDir <新版本解压目录>
+```
+
+脚本做四件事，**你的 `config.json` 不会被覆盖**：
+
+1. 把 21 个 `config.json` 备份到临时目录
+2. 更新代码（git 用户走 `fetch + reset`，不是 `pull`）
+3. 把配置原样放回去
+4. 打印每个插件的版本变化
+
+**为什么不是 `git pull`**：本仓库的历史被重写过一次（清理早期提交里的本机路径），老克隆和远端已经分叉，`pull` 会报 `diverged`。只能用 `git fetch origin && git reset --hard origin/main` 对齐。
+
+重启这一步脚本不做，请你自己按。
+
+### 10.2 手动升级（不想跑脚本）
+
+```powershell
+# 1. 备份配置
+$dst = "$env:TEMP\config-backup"
+New-Item -ItemType Directory -Force -Path $dst | Out-Null
+Get-ChildItem packages -Recurse -Filter config.json | ForEach-Object {
+  $rel = $_.FullName.Substring((Resolve-Path packages).Path.Length + 1)
+  New-Item -ItemType Directory -Force -Path (Split-Path (Join-Path $dst $rel)) | Out-Null
+  Copy-Item $_.FullName (Join-Path $dst $rel) -Force
+}
+
+# 2. 更新代码
+git fetch origin
+git reset --hard origin/main
+
+# 3. 恢复配置
+Copy-Item "$dst\*" packages -Recurse -Force
+```
+
+zip 用户：把新版本解压到别处，只覆盖 `packages\` 下除 `config.json` 以外的文件。
+
+### 10.3 这一版有破坏性变更：工具名合并成单入口
+
+旧版的多个工具现在合成了一个入口，**旧工具名不再注册**：
+
+| 旧工具 | 新工具 |
+|---|---|
+| `budget_status` / `budget_sessions` / `budget_advice` | `budget` |
+| `comfy_status` / `comfy_generate` / `comfy_controlnet` | `comfy` |
+| `self_status` / `self_check` / `self_metrics` …（10 个） | `self` |
+| `memory_remember` / `memory_search` …（9 个） | `memory` |
+| `naga_app_launcher` / `naga_weather_time` / `naga_system_control` | `naga` |
+| `chatlog_*` / `diary_*`（13 个） | `chatlog` + `diary` |
+| `pet_form` / `pet_say` / `pet_start` / `pet_status` / `pet_stop` | `pet` |
+| `playground_check` / `playground_start` …（6 个） | `playground` |
+| `qq_send` / `qq_status` | `qq` |
+| `screenshot_take` / `screenshot_windows` | `screenshot` |
+
+**影响**：模型会自动看到新工具，一般不用改什么；但如果你在系统提示、自定义 prompt 或外部脚本里写死了旧工具名，要一起改。
+
+参数结构也变了，统一成 `action=xxx`：
+
+```jsonc
+// 旧：comfy_generate({ prompt: "..." })
+// 新：comfy({ action: "generate", prompt: "..." })
+```
+
+### 10.4 升级后验证
+
+| 检查 | 做法 |
+|---|---|
+| 配置还在 | 打开 `packages/<包>/config.json`，你的值应该还在 |
+| 工具改名生效 | 新会话里看工具列表 |
+| 版本对得上 | `packages/<包>/package.json` 的 `version` |
+| 真跑一次 | 各挑一个工具调一下 |
+
+**升级前后配置字段没有任何增删**，所以老配置可以原样用，不需要迁移。
