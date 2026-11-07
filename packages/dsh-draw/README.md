@@ -73,7 +73,7 @@ lib/bridge.js    spawn python，文件当 IPC
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 关掉就不注册工具 |
-| `outputDir` | `<你的输出目录>` | 默认输出目录，文件按 `chart-<标题>-<时间戳>.png` 命名 |
+| `outputDir` | `<工作区>\out\draw` | 默认输出目录，文件按 `chart-<标题>-<时间戳>.png` 命名 |
 | `pythonPath` | `""` | 留空则自动探测：环境变量 `DSH_PYTHON` → `~/.dsh/dsh-runtimes/*/dependencies/python/python.exe` |
 
 ## 已知限制
@@ -106,4 +106,8 @@ $node = '<你的 DSH 自带 node.exe 路径>'
 
 ## 变更记录
 
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
 - 2026-11-01 · 0.1.0 · 首个版本：`draw_chart` + `draw_card`，依赖固化，文件 IPC 桥接。

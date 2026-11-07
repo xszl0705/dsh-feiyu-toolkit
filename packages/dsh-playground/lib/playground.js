@@ -13,9 +13,9 @@
 
 import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
+import { isAlive, portOpen as kitPortOpen } from 'dsh-plugin-kit/process'
 
 const DEFAULTS = {
   exe: '',
@@ -26,6 +26,38 @@ const DEFAULTS = {
 
 export function defaultProfilesRoot() {
   return path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'profiles')
+}
+
+/** 实例 pid 落盘位置：宿主重启后仍能停掉上一次拉起的实例。 */
+export function instanceStateFile() {
+  return path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'dafeiyu', 'playground.json')
+}
+
+export function readInstanceState() {
+  try {
+    const value = JSON.parse(fs.readFileSync(instanceStateFile(), 'utf8'))
+    return value && typeof value === 'object' ? value : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeInstanceState(value) {
+  try {
+    const file = instanceStateFile()
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, JSON.stringify(value, null, 2), 'utf8')
+  } catch {
+    // 落盘失败不影响启停
+  }
+}
+
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+  } catch {
+    // 极端环境下不支持就跳过等待
+  }
 }
 
 /**
@@ -58,19 +90,9 @@ export function insideDir(base, target) {
   return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
 }
 
-/** 端口上有东西在听就算活着。 */
+/** 端口上有东西在听就算活着（实现统一在 kit/process）。 */
 export function portOpen(port, timeoutMs = 1200) {
-  return new Promise((resolve) => {
-    const socket = net.createConnection({ host: '127.0.0.1', port })
-    const done = (result) => {
-      socket.destroy()
-      resolve(result)
-    }
-    socket.setTimeout(timeoutMs)
-    socket.once('connect', () => done(true))
-    socket.once('timeout', () => done(false))
-    socket.once('error', () => done(false))
-  })
+  return kitPortOpen(port, { timeoutMs })
 }
 
 async function waitForPort(port, deadline) {
@@ -149,6 +171,7 @@ export async function startInstance({ profile, port, state = {}, config = {}, no
   state.pid = child.pid
   state.profile = profile
   state.port = listenPort
+  writeInstanceState({ pid: child.pid, profile, port: listenPort, at: new Date().toISOString() })
   note(`试验区启动：profile=${profile} pid=${child.pid} 等端口 ${listenPort}`)
 
   const startedAt = Date.now()
@@ -171,13 +194,24 @@ export function stopInstance({ state = {}, note = () => {} } = {}) {
   if (!pid) return { ok: false, error: '没有记录到实例 pid' }
   try {
     process.kill(pid)
-    note(`试验区停止：pid=${pid}`)
-    state.pid = null
-    return { ok: true, pid }
   } catch (error) {
     state.pid = null
+    writeInstanceState({})
+    // ESRCH：进程本来就不在了，停止目标已达成，不算失败
+    if (error && error.code === 'ESRCH') return { ok: true, pid, alreadyStopped: true }
     return { ok: false, pid, error: String((error && error.message) || error) }
   }
+  // kill 只是发信号，立刻查可能还没退出；等一会再复核，杀不掉必须报 ok:false
+  for (let i = 0; i < 10 && isAlive(pid); i += 1) sleepSync(100)
+  if (isAlive(pid)) {
+    state.pid = pid
+    writeInstanceState({ pid, profile: state.profile || '', port: state.port || null, at: new Date().toISOString() })
+    return { ok: false, pid, error: `进程 ${pid} 仍在运行（信号已发出但未退出）` }
+  }
+  note(`试验区停止：pid=${pid}`)
+  state.pid = null
+  writeInstanceState({})
+  return { ok: true, pid }
 }
 
 /**
@@ -281,7 +315,7 @@ export function installPlugin({ profile, packageName, sourceDir, config = {}, no
 
   // 1) 备份
   const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
-  const backupRoot = config.backupRoot || path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'backups')
+  const backupRoot = config.backupRoot || path.join(os.homedir(), '.dsh', 'backups')
   const backupDir = path.join(backupRoot, `${stamp}-before-${packageName}-in-${profile}`)
   try {
     fs.mkdirSync(backupDir, { recursive: true })

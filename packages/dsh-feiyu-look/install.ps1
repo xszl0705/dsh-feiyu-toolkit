@@ -1,4 +1,4 @@
-# 安装 / 回滚 dsh-feiyu-look（一次只动一个插件）
+﻿# 安装 / 回滚 dsh-feiyu-look（一次只动一个插件）
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File install.ps1            # 安装
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Rollback  # 回滚到最近一次安装前
@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 $ProfileDir = Join-Path $env:USERPROFILE '.dsh\profiles\desktop'
 $PkgDir = $PSScriptRoot
 $PkgName = 'dsh-feiyu-look'
-$BackupRoot = Join-Path $env:USERPROFILE '.dsh\backups'
+$BackupRoot = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'github\backups'
 $PointerFile = Join-Path $BackupRoot 'feiyu-look-latest-backup.txt'
 
 if (-not (Test-Path $ProfileDir)) { throw "profile 不存在：$ProfileDir" }
@@ -62,7 +62,7 @@ Write-Host "备份：$bak" -ForegroundColor Green
 # 2) node：多候选，最后一个才查 PATH
 $nodeCandidates = @(
     (Join-Path $env:USERPROFILE '.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'),
-    (Join-Path $env:LOCALAPPDATA 'Programs\nodejs\node.exe')
+    'E:\dsh\resources\app.asar.unpacked\dsh\node_modules\.bin\node.exe'
 )
 $node = $nodeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $node) {

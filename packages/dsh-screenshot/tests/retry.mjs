@@ -11,7 +11,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const KEY = Symbol.for('dsh-screenshot.state')
 const mod = await import(`file://${path.join(ROOT, 'index.js').replace(/\\/g, '/')}`)
 // Per-context state lives in the lifecycle WeakMap; the same ctx yields the same instance.
-const { lifecycle } = await import(`file://${path.join(ROOT, 'lib', 'lifecycle.js').replace(/\\/g, '/')}`)
+const { lifecycle } = await import('dsh-plugin-kit/lifecycle')
 
 // ---- 1. tools 晚到：应该自动重试并最终注册 ----
 {
@@ -47,7 +47,7 @@ const { lifecycle } = await import(`file://${path.join(ROOT, 'lib', 'lifecycle.j
   console.log('✓ tools 晚就绪会重试，且不重复注册')
 }
 
-// ---- 3. 一直等不到 tools：60 秒后放弃，不再定时器空转 ----
+// ---- 3. 一直等不到 tools：120 秒后放弃，不再定时器空转 ----
 {
   delete globalThis[KEY]
   const registered = []
@@ -58,12 +58,12 @@ const { lifecycle } = await import(`file://${path.join(ROOT, 'lib', 'lifecycle.j
   }
   mod.apply(ctx)
   const state = lifecycle(ctx)
-  assert.ok(state && state.waiting, '应进入等待状态')
-  state.since = Date.now() - 61000 // 假装已经等了 61 秒
+  assert.ok(state && state._toolsWaiting, '应进入等待状态')
+  state._toolsSince = Date.now() - 121000 // 假装已经等了 121 秒
   await new Promise((resolve) => setTimeout(resolve, 350))
   assert.equal(registered.length, 0)
-  assert.equal(lifecycle(ctx).waiting, false, '超时后应停止重试')
-  console.log('✓ 60 秒超时后停止重试')
+  assert.equal(lifecycle(ctx)._toolsWaiting, false, '超时后应停止重试')
+  console.log('✓ 120 秒超时后停止重试')
 }
 
 console.log('\n全部通过')

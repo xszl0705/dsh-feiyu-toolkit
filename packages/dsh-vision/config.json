@@ -4,6 +4,9 @@
   "installClientContext": true,
   "vision": {
     "maxImageBytes": 8388608,
-    "timeoutMs": 30000
+    "timeoutMs": 30000,
+    "apiKey": "",
+    "baseURL": "https://api.deepseek.com",
+    "model": "deepseek-chat"
   }
 }

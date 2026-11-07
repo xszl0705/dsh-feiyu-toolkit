@@ -8,10 +8,11 @@
  * 东财 push2 系列在插件进程里 TLS 指纹被拒，本插件不碰（方案见 docs/金融分析与社科学习方案-2026-11-01.md）。
  */
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { FinanceStore, DEFAULT_DB } from './lib/store.js'
 import { createTools } from './lib/tools.js'
 
@@ -36,12 +37,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.mkdirSync(HERE, { recursive: true })
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响功能
-  }
+  kitNote(HERE, message, { mkdir: true })
 }
 
 function safeLog(ctx, level, message) {

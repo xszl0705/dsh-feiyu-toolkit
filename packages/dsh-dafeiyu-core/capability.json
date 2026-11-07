@@ -1,11 +1,12 @@
 {
   "id": "core",
   "package": "dsh-dafeiyu-core",
-  "version": "0.1.0",
-  "intent": "人格与渠道模板：加载人格文件、按渠道组装系统提示词",
+  "version": "0.2.0",
+  "intent": "人格与渠道模板：加载人格与关系清单、按渠道组装系统提示词",
   "inputs": [
     "channel",
-    "persona-files"
+    "persona-files",
+    "relations-files"
   ],
   "outputs": [
     "system-prompt",
@@ -13,7 +14,10 @@
   ],
   "limits": [
     "只负责组装与加载，不改人格内容",
-    "不访问网络"
+    "不访问网络",
+    "桌宠模板里的 {{memory}} 只是背景槽位（填什么由 dsh-pet-hub 决定），模板本身不读记忆文件",
+    "relations.md 只编进公开渠道（qq/bili）身份段；client/pet 不重复塞",
+    "relations.md 属于公开档，只放关系、称呼、公开形象；隐私内容不得写进去"
   ],
   "failureModes": [
     {
@@ -31,5 +35,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-10-31T13:45:00+08:00"
+  "changedAt": "2026-11-02T23:20:00+08:00"
 }

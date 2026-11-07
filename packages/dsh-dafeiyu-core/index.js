@@ -1,4 +1,5 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 /**
  * dsh-dafeiyu-core — 主入口
  *
@@ -34,11 +35,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了也不能影响加载
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {
@@ -86,11 +83,20 @@ function applyInner(ctx) {
   const clientText = () => {
     try {
       const personaFile = path.join(dir, 'persona.md')
-      const mtime = fs.statSync(personaFile).mtimeMs
-      if (mtime > manifest.compiledAt) {
+      const relationsFile = path.join(dir, 'relations.md')
+      const newest = [personaFile, relationsFile]
+        .map((file) => {
+          try {
+            return fs.statSync(file).mtimeMs
+          } catch {
+            return 0
+          }
+        })
+        .reduce((a, b) => Math.max(a, b), 0)
+      if (newest > manifest.compiledAt) {
         core = loadCore(dir, HERE)
         manifest = compile(core, dir)
-        note('persona.md 已更新，重编译渠道模板')
+        note('persona.md / relations.md 已更新，重编译渠道模板')
       }
       return fs.readFileSync(path.join(compiledDir(), 'client.identity.txt'), 'utf8')
     } catch (error) {
@@ -208,17 +214,24 @@ function compile(core, dir) {
   }
   const hash = personaHash(core.persona)
   const channels = Object.keys(core.voice.channels || {})
+  // 公开渠道（QQ/B 站）附带「关系与形象」清单：群里不查私密记忆，也要认得出人。
+  const publicChannels = new Set(['qq', 'bili'])
+  const relations = String(core.relations || '').trim()
   writeFile(path.join(out, 'pet.template.txt'), buildPetTemplate(core))
   writeFile(path.join(out, 'client.identity.txt'), buildClientIdentity(core))
-  // 每个渠道一份完整身份段：适配器（QQ/B 站等）直接读，不用各自拼人格
+  if (relations) writeFile(path.join(out, 'relations.public.txt'), relations)
   for (const channel of channels) {
-    writeFile(path.join(out, `identity.${channel}.txt`), buildSystem({ channel, core }))
+    writeFile(
+      path.join(out, `identity.${channel}.txt`),
+      buildSystem({ channel, core, relations: publicChannels.has(channel) ? relations : '' }),
+    )
   }
   const manifest = {
     personaHash: hash,
     strength: core.voice.strength,
     channels,
     personaLines: core.persona.split('\n').length,
+    relationsChars: relations.length,
     // 人格数值（可选）。mood 读这里，不再读桌宠 config，人格只有一处定义。
     personaDims: readPersonaDims(core.persona),
     compiledAt,

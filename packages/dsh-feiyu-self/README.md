@@ -32,7 +32,15 @@ Self Model 与决策日志。对应 [自进化方案 v1](../docs/self-evolving-h
 
 1. **能力清单必须来自真实声明**，不手写；拿不到就标 `unknown`。
 2. **决策日志只存决策与结果**，正文类字段（text/content/reply）在白名单里直接丢弃。
-3. **不自动改任何配置或代码**。这个插件只读 + 记录。
+3. **不自动改代码、不碰人设与权限**；唯一能写的是 `flags.json` 的 `enabled / variants`，且必须走「候选 → 人审 → 三重验证 → 灰度 → 回滚」。
+
+## 进化闭环（阶段 1.5）
+
+- **诊断源**（1.5.1）：`diagnose()` 只看指标；`diagnoseFromSources()` 再聚合三路——各插件 `load.log` 里出现 ≥2 次的同一句、回归失败项、没进 `tests/verify.mjs` 清单的插件。纯规则，不调模型；`load.log` 只读最后 200 行。
+- **单一候选制**（1.5.2）：同一时间只允许 1 个可应用候选在途（`MAX_ACTIVE_CHANGES`）。在途满了，新候选自动降级为提醒（带 `blockedBy`），不硬凑。单次改动规模：补丁 ≤ `MAX_DIFF_LINES`(50) 行、配置类 JSON ≤ `MAX_DIFF_CHARS`(2000) 字符。
+- **三重验证器**（1.5.3）：`tripleVerify({ target, migration, full })` 三份证据各自出数（目标修复用例 / 同类迁移子集 / 全量 verify 净值）；缺一项或任一红都返回 `ok:false` 并列出 `blockers`。带 `verification` 的候选在 `apply()` 里会被拦。
+- **变体档案**（1.5.4）：`pipeline.archiveVariant({ id, patch, diff, metrics })` 落 `variants/<id>/{patch.diff,diff.json,metrics.json}`，只保留最近 10 个，可 diff、可回滚。
+- **变体运行**（1.5.5）：`lib/variants.js` 实现 Variant Runner——flag 是配置文件（`~/.dsh/dafeiyu/flags.json`），改文件即生效（按 mtime 缓存），关掉 flag 即回滚，不用重启；分桶用 sticky key（默认 `conversation`），同一个人不会同时收到两个版本。默认 flag 有 `route.modelHint` 与 `route.tier`（local-triage 分诊灰度，默认关；只把极窄确认类短句降级到本地模型，cheap/frontier 仍走大模型）。
 
 ## 给其他插件用
 
@@ -94,4 +102,10 @@ node tests/self-model.test.mjs
 
 ## 变更记录
 
-- 2026-11-01：10 个工具合并为单入口 `self(action)`。`self_status` / `self_capabilities` / `self_limits` / `self_history` / `self_check` / `self_metrics` / `self_flags` / `self_evolve` / `self_procedures` / `self_context` 旧名不再注册；`self_evolve`、`self_procedures` 原有的 `action` 参数改名为 `op`（取值集合不变），其余参数名与默认值不变。
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 与 `atomicWrite` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js`、`lib/atomic-write.js` 副本。
+- 2026-11-03：`changes.json`、`flags.json`、应用前备份，以及 capability / snapshot 写入全部改原子写（`lib/atomic-write.js`：tmp + fsync + rename），进程中途被杀不会留下半截 JSON。
+- 2026-11-01：10 个工具合并为单入口 `self(action)`。`self_status` / `self_capabilities` / `self_limits` / `self_history` / `self_check` / `self_metrics` / `self_flags` / `self_evolve` / `self_procedures` / `self_context` 旧名不再注册；`self_evolve`、`self_procedures` 原有的 `action` 参数改名为 `op`（取值集合不变），其余参数名与默认值不变。- 2026-11-04 · 诊断源降噪：load.log 只报含错误特征的行；数字码加词边界（`pid 40160` 曾被误判成 401）；排除 `.tmp-` 测试残留路径。诊断项从 60+ 降到 11。新增 `tests/evolution-loop.test.mjs`。
+- 2026-11-05 · 新增 `lib/variants.js`（Variant Runner）：flag 改文件即生效、sticky 按 conversation 分桶、关 flag 即回滚；新增 `route.tier` 默认 flag（local-triage 分诊，默认关，只降级 local），`self(action='flags')` 的求值走它。

@@ -1,0 +1,24 @@
+{
+  "id": "local-triage",
+  "package": "dsh-local-triage",
+  "version": "0.1.0",
+  "intent": "本地小模型分诊：判断一条请求该走本地 / 便宜模型 / 前沿模型；另提供确定性工具输出压缩",
+  "inputs": ["request（请求文本与元信息）", "toolResult（工具输出）"],
+  "outputs": ["{tier, source, conf, why, ms}", "压缩后的工具输出文本"],
+  "limits": [
+    "本地模型只做分诊，不做生成——生成永远交给云端",
+    "压缩是纯代码（截断/投影/分页/落盘/报错裁剪），不花模型 token",
+    "本地不可用时 fail-open：直接放行到云端，不阻塞请求",
+    "不改写内容语义，只裁剪体积"
+  ],
+  "failureModes": [
+    { "code": "LOCAL_UNAVAILABLE", "meaning": "Ollama 未启动或超时", "retry": "fail-open，判为前沿档" },
+    { "code": "LOW_CONFIDENCE", "meaning": "分诊置信度不足", "retry": "上调一档，宁可走贵的" }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low",
+    "network": "local-only"
+  },
+  "changedAt": "2026-11-01T10:00:00+08:00"
+}

@@ -31,7 +31,12 @@ export function sqliteReady() {
   return typeof DatabaseCtor === 'function'
 }
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
+
+/** 可见性只有两档：public=公开渠道（群聊/陌生人）可用，private=仅本人私聊。 */
+function normalizeVisibility(value) {
+  return String(value || '').toLowerCase() === 'public' ? 'public' : 'private'
+}
 const FOLDER_KEYWORD_CAP = 20
 
 function tokensQuery(text) {
@@ -102,8 +107,20 @@ export class SqliteStore {
       CREATE INDEX IF NOT EXISTS idx_mem_folder ON memories(folder_id, status);
       CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(tokens);
     `)
+    this.#ensureVisibility()
     this.db.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run('schema_version', String(SCHEMA_VERSION))
     return this
+  }
+
+  /**
+   * 老库升级：memories 表补 visibility 列。
+   * 默认 private —— 已有条目一律先当私密，宁可少讲不可说漏。
+   */
+  #ensureVisibility() {
+    const columns = this.db.prepare('PRAGMA table_info(memories)').all()
+    if (columns.some((column) => column.name === 'visibility')) return
+    this.db.exec("ALTER TABLE memories ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'")
+    this.db.exec("CREATE INDEX IF NOT EXISTS idx_mem_visibility ON memories(visibility, status)")
   }
 
   close() {
@@ -147,6 +164,7 @@ export class SqliteStore {
     keywords = [],
     importance = 0.5,
     category = 'general',
+    visibility = 'private',
     maxItems = 200,
     dedupe = true,
     duplicateRatio = 0.9,
@@ -154,6 +172,7 @@ export class SqliteStore {
   }) {
     assertMemorySafe(text)
     const cleaned = String(text || '').trim()
+    const vis = normalizeVisibility(visibility)
     const now = Date.now()
     const folder = this.upsertFolder(folderName, keywords)
     let action = 'inserted'
@@ -196,12 +215,12 @@ export class SqliteStore {
         const merged = parseKeywords(target.row.keywords)
         for (const keyword of keywords) if (keyword && !merged.includes(keyword)) merged.push(keyword)
         this.db
-          .prepare('UPDATE memories SET keywords = ?, updated_at = ? WHERE id = ?')
-          .run(JSON.stringify(merged.slice(-40)), now, target.row.id)
+          .prepare('UPDATE memories SET keywords = ?, visibility = ?, updated_at = ? WHERE id = ?')
+          .run(JSON.stringify(merged.slice(-40)), vis, now, target.row.id)
         action = 'duplicate'
         this.db.exec('COMMIT')
         return {
-          item: { id: target.row.id, text: target.row.text, keywords: merged },
+          item: { id: target.row.id, text: target.row.text, keywords: merged, visibility: vis },
           folder: { ...folder, items: [], activeCount: this.#activeCount(folder.id) },
           action,
         }
@@ -210,9 +229,9 @@ export class SqliteStore {
       const id = `m${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`
       const info = this.db
         .prepare(
-          `INSERT INTO memories(folder_id, id, text, keywords, category, importance, status,
+          `INSERT INTO memories(folder_id, id, text, keywords, category, importance, visibility, status,
              created_at, updated_at, simhash)
-           VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
         )
         .run(
           folder.id,
@@ -221,6 +240,7 @@ export class SqliteStore {
           JSON.stringify(keywords.slice()),
           category,
           Number.isFinite(importance) ? Math.min(1, Math.max(0, importance)) : 0.5,
+          vis,
           now,
           now,
           String(simhash64(cleaned)),
@@ -252,7 +272,7 @@ export class SqliteStore {
 
       this.db.exec('COMMIT')
       return {
-        item: { id, text: cleaned, keywords: keywords.slice(), importance, category, createdAt: now },
+        item: { id, text: cleaned, keywords: keywords.slice(), importance, category, visibility: vis, createdAt: now },
         folder: { ...folder, items: [], activeCount: this.#activeCount(folder.id) },
         action,
         supersededId,
@@ -285,21 +305,23 @@ export class SqliteStore {
    * 候选来自 FTS5（BM25 排序），最终分数用「词面命中率」算——BM25 的绝对量级
    * 随语料规模剧烈变化（小库里常见词 IDF 归零、分数为 0），不能当阈值用。
    */
-  search(query, { limit = 8, minRatio = 0.2, folder = '' } = {}) {
+  search(query, { limit = 8, minRatio = 0.2, folder = '', visibility = '' } = {}) {
     const match = tokensQuery(query)
     const queryTokens = tokenize(query)
     if (!match || queryTokens.length === 0) return []
     const scope = String(folder || '').trim()
+    const vis = String(visibility || '').trim()
     const sql = `SELECT m.id, m.text, m.category, m.importance, m.created_at, m.access_count,
                 fd.name AS folder, bm25(memory_fts) AS rank
            FROM memory_fts
            JOIN memories m ON m.rowid = memory_fts.rowid
            JOIN folders fd ON fd.id = m.folder_id
-          WHERE memory_fts MATCH ? AND m.status = 'active'${scope ? ' AND fd.name = ?' : ''}
+          WHERE memory_fts MATCH ? AND m.status = 'active'${scope ? ' AND fd.name = ?' : ''}${vis ? ' AND m.visibility = ?' : ''}
           ORDER BY rank LIMIT 50`
-    const rows = scope
-      ? this.db.prepare(sql).all(match, scope)
-      : this.db.prepare(sql).all(match)
+    const args = [match]
+    if (scope) args.push(scope)
+    if (vis) args.push(vis)
+    const rows = vis || scope ? this.db.prepare(sql).all(...args) : this.db.prepare(sql).all(match)
     const now = Date.now()
     const hits = []
     for (const row of rows) {

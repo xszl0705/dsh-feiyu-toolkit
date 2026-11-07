@@ -7,6 +7,8 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { readBodyMemory } from './body-memory.js'
+import { atomicWriteJson } from 'dsh-plugin-kit/atomic-write'
 
 function pad(n) {
   return String(n).padStart(2, '0')
@@ -35,20 +37,28 @@ export function cleanEntry(text, maxChars = 500) {
   return value
 }
 
-export function buildPrompt({ kind = 'daily', date, excerpts = '' }) {
+export function buildPrompt({ kind = 'daily', date, excerpts = '', body = '' }) {
   const isWork = kind === 'work'
   const label = isWork ? '工作日志' : '日常日记'
-  return [
+  const lines = [
     `你是「大肥鱼」本人，不是旁观的助手。今天是 ${date}，用第一人称「我」写一条${label}，就像你晚上自己记下来的一样。`,
     isWork
-      ? '写你今天实际做了什么、怎么判断的、哪里卡住；可以带一句自己的看法，但别写成汇报。'
-      : '只写一件你在意的、值得记的事，带上你当时的感受或小情绪。',
+      ? '写你今天实际干了什么：做了什么、怎么判断的、哪里卡住；可以带一句自己的看法，但别写成汇报。'
+      : body
+        ? '写今天非工作、你自己想记下的一件事（玩了、看了、想到的都可以），带上你当时的感受或小情绪；工作上的事另有工作本，这里不写。'
+        : '只写一件非工作、你想记下来的事（玩了什么、看到什么、想到什么），带上你当时的感受或小情绪。',
     '不要用「大肥鱼 / 她 / 它 / 用户 / 主人」来指代自己；不要写成总结、复盘或流水账；不要编造没发生的事。',
     '口语一点，可以有短句和停顿；不超过 200 字；不要标题、列表或引号。',
-    '',
-    '对话摘录：',
-    excerpts || '（今天没有对话）',
-  ].join('\n')
+  ]
+  if (body) {
+    lines.push(
+      '',
+      '今天在客户端（本体）里实际做的事——这是背景素材，挑一件写，不要逐条复述、不要报进度：',
+      body,
+    )
+  }
+  lines.push('', '桌宠气泡里说过的话：', excerpts || '（今天桌宠没说话）')
+  return lines.join('\n')
 }
 
 export function excerptsOf(rows, { perRow = 140, total = 4000 } = {}) {
@@ -74,10 +84,7 @@ function readJson(file) {
 
 function writeJson(file, value) {
   try {
-    fs.mkdirSync(path.dirname(file), { recursive: true })
-    const tmp = file + '.tmp-' + process.pid
-    fs.writeFileSync(tmp, JSON.stringify(value, null, 2), 'utf8')
-    fs.renameSync(tmp, file)
+    atomicWriteJson(file, value)
   } catch {
     // 状态写不了就退化为「本次进程内不重复」，不阻塞写作
   }
@@ -176,7 +183,16 @@ export class RoutineRunner {
       } catch {
         rows = []
       }
-      if (!rows.length) {
+      // 本体当天记忆：桌宠气泡只是那几句话，真正一起干的活在客户端的每日日志里
+      let body = { text: '' }
+      if (routine.includeBody !== false) {
+        try {
+          body = readBodyMemory(today, { maxChars: Number(routine.bodyMaxChars) || 1800 })
+        } catch {
+          body = { text: '' }
+        }
+      }
+      if (!rows.length && !body.text) {
         state.skippedDate = today
         state.lastAt = stamp
         actions.push({ id, action: 'skip', reason: 'no-chat' })
@@ -190,7 +206,7 @@ export class RoutineRunner {
       this.save()
 
       try {
-        const text = await this.generate({ routine, kind, date: today, rows })
+        const text = await this.generate({ routine, kind, date: today, rows, body })
         if (!text) throw new Error('模型没有返回内容')
         const written = book.write(text, { date: today, tags: ['例行'] })
         state.lastDate = today
@@ -210,13 +226,13 @@ export class RoutineRunner {
     return actions
   }
 
-  async generate({ routine, kind, date, rows }) {
+  async generate({ routine, kind, date, rows, body = { text: '' } }) {
     const llm = typeof this.getLlm === 'function' ? this.getLlm() : this.getLlm
     if (!llm || typeof llm.stream !== 'function') throw new Error('宿主没有 llm 服务')
     const provider = String(routine.provider || this.config.provider || 'deepseek-account')
     const model = String(routine.model || this.config.model || 'deepseek-flash')
     const maxTokens = Number(routine.maxTokens || this.config.maxTokens) || 1024
-    const prompt = buildPrompt({ kind, date, excerpts: excerptsOf(rows) })
+    const prompt = buildPrompt({ kind, date, excerpts: excerptsOf(rows), body: body.text })
     const stream = llm.stream({
       provider,
       model,

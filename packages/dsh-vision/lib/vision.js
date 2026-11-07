@@ -8,7 +8,7 @@
 import { publicDownload } from './public-download.js'
 
 const DEFAULT_BASE = 'https://api.deepseek.com'
-const DEFAULT_MODEL = 'deepseek-flash'
+const DEFAULT_MODEL = 'deepseek-chat'
 const DEFAULT_MAX_BYTES = 8 * 1024 * 1024
 const DEFAULT_MAX_IMAGES = 2
 
@@ -39,15 +39,22 @@ async function fetchImage(image, config, download = publicDownload) {
 async function postVision({ account, config, content, maxTokens, onUsage }) {
   if (!account || typeof account.resolveToken !== 'function') throw new Error('没有 deepseekAccount 服务')
   const baseURL = String(config.baseURL || DEFAULT_BASE).replace(/\/+$/, '')
-  const token = await account.resolveToken(baseURL)
-  if (!token) throw new Error('没有 DeepSeek 账号 token')
+  // 两条认证路径：优先配置里的官方 API key（Bearer），否则退回宿主账号 token。
+  // 实测：宿主账号 token 发给 api.deepseek.com 会被判 "invalid dsh token"——
+  // 平台 token 只对宿主自己的推理网关有效，不是 DeepSeek 的 API key。
+  const apiKey = String(config.apiKey || process.env.DEEPSEEK_API_KEY || '').trim()
+  let headers
+  if (apiKey) {
+    headers = { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` }
+  } else {
+    const token = await account.resolveToken(baseURL)
+    if (!token) throw new Error('没有 DeepSeek 账号 token')
+    headers = { 'content-type': 'application/json', 'x-dsh-auth-token': token }
+  }
 
   const res = await fetch(`${baseURL}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-dsh-auth-token': token,
-    },
+    headers,
     body: JSON.stringify({
       model: String(config.model || DEFAULT_MODEL),
       messages: [{ role: 'user', content }],
@@ -58,10 +65,19 @@ async function postVision({ account, config, content, maxTokens, onUsage }) {
   })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
+    if (res.status === 401 && !apiKey) {
+      throw new Error(
+        `vision api 401：宿主账号 token 不能直连 ${baseURL}（DeepSeek 只认自己的 API key）。` +
+          `请在 config.json 里配 vision.apiKey，或设置环境变量 DEEPSEEK_API_KEY。原始响应：${text.slice(0, 120)}`,
+      )
+    }
     throw new Error(`vision api ${res.status}: ${text.slice(0, 200)}`)
   }
   const data = await res.json()
-  const reply = String(data?.choices?.[0]?.message?.content || '').trim()
+  // deepseek-flash 是 reasoning 模型：看图时内容常落在 reasoning_content、content 为空；
+  // deepseek-chat 能直接出 content。两条都认，避免把「模型确实看了图」误报成 empty reply。
+  const message = data?.choices?.[0]?.message || {}
+  const reply = String(message.content || message.reasoning_content || '').trim()
   if (!reply) throw new Error('vision empty reply')
   if (typeof onUsage === 'function') onUsage(normalizeUsage(data?.usage || {}))
   return {
@@ -95,8 +111,15 @@ export async function askVisionBytes({ account, config = {}, prompt, images = []
 export async function askVision({ account, config = {}, download = publicDownload, prompt, images = [], maxTokens = 1000, onUsage = null }) {
   const list = images.slice(0, Math.max(1, Number(config.maxImages) || DEFAULT_MAX_IMAGES))
   if (!list.length) throw new Error('没有可发送的图片')
+  const maxBytes = Math.max(1024, Number(config.maxBytes) || DEFAULT_MAX_BYTES)
   const loaded = []
   for (const image of list) {
+    // 图片库已经下载过的图直接带 bytes，别为了看图再下一遍
+    if (Buffer.isBuffer(image?.bytes) && image.bytes.length) {
+      if (image.bytes.length > maxBytes) throw new Error(`image too large: ${image.bytes.length}`)
+      loaded.push({ mediaType: String(image.mediaType || 'image/jpeg'), bytes: image.bytes })
+      continue
+    }
     const { type, bytes } = await fetchImage(image, config, download)
     loaded.push({ mediaType: type, bytes })
   }

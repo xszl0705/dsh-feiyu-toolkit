@@ -10,14 +10,16 @@
     "只杀自己记下的 pid，不按进程名全杀",
     "不自动启动，必须显式调用",
     "装插件只改指定 profile 的 package.json 和 junction",
-    "工具已合并为单入口 playground(action)，旧名不再注册"
+    "工具已合并为单入口 playground(action)，旧名不再注册",
+    "实例 pid 落盘到 ~/.dsh/dafeiyu/playground.json（超 24h 过期）；stop 杀完按 pid 复核，未退出返回 ok:false"
   ],
   "failureModes": [
     { "code": "PROFILE_MISSING", "meaning": "profile 目录不存在", "retry": "不重试，报路径" },
     { "code": "BOOT_TIMEOUT", "meaning": "端口在超时内没起来", "retry": "看 profile 日志后重试" },
-    { "code": "SPAWN_FAILED", "meaning": "拉不起进程", "retry": "检查 exe / cli 路径" }
+    { "code": "SPAWN_FAILED", "meaning": "拉不起进程", "retry": "检查 exe / cli 路径" },
+    { "code": "STOP_FAILED", "meaning": "信号已发出但 pid 仍存活", "retry": "不重试，人工确认后处理" }
   ],
   "scope": ["owner"],
   "cost": { "cpu": "low", "network": "localhost" },
-  "changedAt": "2026-11-01T17:40:00+08:00"
+  "changedAt": "2026-11-03T22:40:00+08:00"
 }

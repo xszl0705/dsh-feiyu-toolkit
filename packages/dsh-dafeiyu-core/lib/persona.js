@@ -55,18 +55,22 @@ export function ensureDefaults(dir, pluginRoot) {
   const assets = path.join(pluginRoot, 'assets')
   const personaFile = path.join(dir, 'persona.md')
   const voiceFile = path.join(dir, 'voice.json')
+  const relationsFile = path.join(dir, 'relations.md')
   const created = []
   if (copyIfMissing(path.join(assets, 'persona.default.md'), personaFile)) created.push(personaFile)
   if (copyIfMissing(path.join(assets, 'voice.default.json'), voiceFile)) created.push(voiceFile)
-  return { personaFile, voiceFile, created }
+  if (copyIfMissing(path.join(assets, 'relations.default.md'), relationsFile)) created.push(relationsFile)
+  return { personaFile, voiceFile, relationsFile, created }
 }
 
-/** 读主体：persona 原文 + 解析后的 voice。文件缺失时回退到 assets 默认值。 */
+/** 读主体：persona 原文 + 解析后的 voice + 公开关系清单。文件缺失时回退到 assets 默认值。 */
 export function loadCore(dir, pluginRoot) {
   ensureDefaults(dir, pluginRoot)
   const assets = path.join(pluginRoot, 'assets')
   const persona =
     readText(path.join(dir, 'persona.md')) || readText(path.join(assets, 'persona.default.md'))
+  const relations =
+    readText(path.join(dir, 'relations.md')) || readText(path.join(assets, 'relations.default.md'))
   let voice
   try {
     voice = JSON.parse(readText(path.join(dir, 'voice.json'), readText(path.join(assets, 'voice.default.json'), '{}')))
@@ -75,7 +79,7 @@ export function loadCore(dir, pluginRoot) {
   }
   if (!voice.channels) voice.channels = {}
   if (typeof voice.strength !== 'number') voice.strength = DEFAULT_STRENGTH
-  return { persona: persona.trim(), voice }
+  return { persona: persona.trim(), relations: relations.trim(), voice }
 }
 
 export function personaHash(persona) {

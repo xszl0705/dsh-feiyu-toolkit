@@ -5,7 +5,6 @@
   "model": "deepseek-flash",
   "maxTokens": 1024,
   "minIntervalMs": 15000,
-  "injectPrompt": true,
   "baseline": 60,
   "decayPerHour": 0.12,
   "negativeFactor": 0.7,

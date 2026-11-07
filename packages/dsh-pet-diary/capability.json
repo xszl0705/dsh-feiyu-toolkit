@@ -1,7 +1,7 @@
 {
   "id": "pet-diary",
   "package": "dsh-pet-diary",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "intent": "日常日记、隐私日记、工作日志与例行任务",
   "inputs": [
     "text",
@@ -16,7 +16,8 @@
   "limits": [
     "隐私日记不主动展示",
     "例行任务失败要可观察，不静默吞掉",
-    "工具已合并为单入口 diary(action)/chatlog(action)，旧名不再注册"
+    "工具已合并为单入口 diary(action)/chatlog(action)，旧名不再注册",
+    "例行日记会读本体每日日志（工作区选择与 mind-loop 同规则、只读一个、截尾 1800 字）作背景；读不到静默降级为空，不影响写日记"
   ],
   "failureModes": [
     {
@@ -37,5 +38,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-01T17:40:00+08:00"
+  "changedAt": "2026-11-01T23:55:00+08:00"
 }

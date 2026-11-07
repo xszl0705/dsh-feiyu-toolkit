@@ -36,7 +36,7 @@
 # 1) 备份 profile
 #    package.json / cordis.patch.yml / pnpm-lock.yaml
 # 2) 在 profile package.json 里加依赖与 bundle
-"dsh-feiyu-look": "link:<插件源码目录>"
+"dsh-feiyu-look": "link:/path/to/dsh-feiyu-look"
 # bundles 数组末尾追加 "dsh-feiyu-look"
 # 3) 重启 DSH（会断当前会话）
 ```

@@ -44,6 +44,13 @@ console.log('\n[身份单一来源]')
   check('voice 解析出四个渠道',
     ['client', 'pet', 'qq', 'bili'].every((name) => Boolean(core.voice.channels[name])),
     Object.keys(core.voice.channels).join(','))
+  check('默认 relations 已落盘', fs.existsSync(path.join(TMP, 'relations.md')))
+  check('relations 解析出内容', /关系与形象/.test(core.relations || ''))
+  // 公开渠道要认得出人；客户端已有完整记忆，不重复塞
+  check('qq 身份带关系清单',
+    buildSystem({ channel: 'qq', core, relations: core.relations }).includes('关系与形象'))
+  check('client 身份不带关系清单',
+    !buildSystem({ channel: 'client', core, relations: '' }).includes('关系与形象'))
 }
 
 console.log('\n[跨渠道只换表达]')

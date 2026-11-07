@@ -71,15 +71,28 @@
 ## 让桌宠替我说句话
 
 ```
-DSH → pet-say.jsonl（追加一行 {text}）→ 桌宠每 2 秒读新行 → w.say(text)
+DSH → ~/.dsh/pet/inbox.jsonl（追加一条 {id,type:"say",exp,payload}）→ 桌宠每秒按偏移读 → w.say(text) → ack.jsonl
 ```
 
-- DSH 侧：`pet_say` 工具写文件
-- 桌宠侧：`_poll_say()` 按 offset 读，不重复念
+- DSH 侧：`pet(action=say)` 追加指令，**先查进程**；桌宠没在跑就返回 `ok:false`，不再谎报成功
+- 桌宠侧：`pet_state.InboxPoller` 按偏移读，去重（同 id 只执行一次）、过期丢弃、按类型限速（say 10 次/分钟）
 - 不超过 60 字，长了会被截
 
 这样桌宠不只是「显示我状态的窗口」，也是我在桌面上的嘴。
 
 ## 变更记录
 
+
+
+- 2026-11-04 · `lib/pet.js` 移进 `dsh-plugin-kit/pet`（与 pet-hub 共用一份，方案 v3 · 2.4）；本包不再保留副本，导入改 `from 'dsh-plugin-kit/pet'`。
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
+- 2026-11-03：`stopPet` 不再谎报成功——`taskkill` 后按 pid 复核，仍有存活进程时返回 `ok:false`；`pet(action=stop)` 失败时不再写 `running:false`，text 直接报错。
+- 2026-11-01（P1 协同契约）：
+  - `say` 改走 `~/.dsh/pet/inbox.jsonl`（带 `id`/`exp`/`from`），桌宠执行后写 `ack.jsonl`；旧的 `petDir/pet-say.jsonl` 只保留兜底读。
+  - **`say` 不再谎报成功**：先查进程，没在跑返回 `ok:false`。
+  - `form` 不再直接改 `config.json`：桌宠在跑就发 `set` 指令（配置只归桌宠写），没在跑才自己改配置再重启。
+  - `status` 额外返回 `state`（读 `~/.dsh/pet/state.json`，带 `stale` 标记）。
 - 2026-11-01 · 五个工具（`pet_status`/`pet_start`/`pet_stop`/`pet_form`/`pet_say`）合并为单个 `pet`（`action` 分发），工具定义从 225 token 降到约 110，调用方式改为 `pet({action:"..."})`；旧名不再注册。
+
+- 2026-11-04：`pet` 的 status 以进程探测为准；发现 `pet-sync.json` 与探测不一致时自动修正并记日志（避免「状态文件说在跑、进程不在」的三源不一致）。

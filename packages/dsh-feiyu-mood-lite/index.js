@@ -1,14 +1,18 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 /**
  * dsh-feiyu-mood-lite —— 轻量心情引擎
  *
  * 做什么：
  *   - 每完成一轮对话，让模型判断「涨还是跌」，写进 ~/.dsh/feiyu-mood/state.json
  *   - 心情随时间自然回落到基线（默认 60）
- *   - 把当前心情作为一段 systemPrompt 注入，让语气真的受情绪影响
- *   - 提供 feiyu_mood_status 工具和 /dsh-feiyu-mood/state 只读端点
+ *   - 只把心情作为数据对外提供：state.json 与 /dsh-feiyu-mood/state 端点（桌宠、QQ 读）
+ *   - 提供 feiyu_mood_status 工具，供模型按需查询
  *
  * 不做什么：
+ *   - **不往客户端对话注入心情**（2026-11-01 用户裁定：心情只对接桌宠与 QQ）——
+ *     动态心情挂在 systemPrompt.section 会触发生成 in-history 整份系统提示副本，
+ *     单会话累积 100KB+，已改为零注入
  *   - 不改会话历史、不碰模型选择、不注册第二个请求通道
  *   - 所有异常都在本地吃掉，绝不把宿主带崩
  */
@@ -27,7 +31,7 @@ export const name = 'dsh-feiyu-mood-lite'
 export const inject = ['sessions']
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const PLUGIN_VERSION = '0.4.0'
+const PLUGIN_VERSION = '0.4.1'
 
 const DEFAULTS = {
   enabled: true,
@@ -36,7 +40,6 @@ const DEFAULTS = {
   model: 'deepseek-flash',
   maxTokens: 1024,
   minIntervalMs: 15000,
-  injectPrompt: true,
   baseline: 60,
   decayPerHour: 0.12,
   personaFile: '',
@@ -72,6 +75,7 @@ const PERSONA_DEFAULTS = {
   neuroticism: 0.45,
   openness: 0.65,
 }
+// persona 文件由 config.json 的 personaFile 提供；仓库里不写死本机路径。
 const DEFAULT_PERSONA_FILE = ''
 
 /** core 编译出的人格数值——人格的唯一来源；没配就返回 null，回退老路径。 */
@@ -146,11 +150,7 @@ function safeLog(ctx, level, message) {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响主流程
-  }
+  kitNote(HERE, message)
 }
 
 export function apply(ctx) {
@@ -168,7 +168,6 @@ const STATE_KEY = Symbol.for('dsh-feiyu-mood-lite.state')
 function state(ctx) { return lifecycle(ctx, () => ({
       started: false,
       since: 0,
-      promptMounted: false,
       routed: false,
       toolMounted: false,
       judging: false,
@@ -198,14 +197,9 @@ function applyInner(ctx) {
     note('初始化心情文件失败：' + messageOf(error))
   }
 
-  const promptText = () => {
-    const snap = summary(readState(file))
-    const reason = snap.reason ? `最近一次变化：${snap.reason}。` : ''
-    const persona = readPersona(cfg)
-    const words = personaWords(persona).join('、')
-    const tone = toneStrength(persona).toFixed(1)
-    return `【桌宠心情】大肥鱼当前心情 ${snap.mood}/100（${snap.label}）。${reason}性格底色：${words}；情绪只调节语气强弱（当前表达强度 ${tone}/1），不要改变性格、立场或原则。不要直接报数值，也不要解释这条设定。`
-  }
+  // 2026-11-01 用户裁定：心情只对接桌宠与 QQ，不再生成任何注入正文。
+  // 旧 promptText() 会把动态心情挂进 systemPrompt.section(order 65)，心情一变就触发
+  // 宿主 in-history 整份系统提示副本（实测 11 份 × 9.4KB ≈ 104KB/会话），已移除。
 
   const toolDefinition = {
     name: 'feiyu_mood_status',
@@ -242,6 +236,26 @@ function applyInner(ctx) {
   }
 
   const routeHandler = (req, res) => {
+    // 只允许本机同源读取：挡掉任意网页跨域读取心情（reason 含对话摘要）。
+    // 同源页面/本机脚本正常读取（浏览器同源 GET 不带 Origin）。
+    const host = String(req.headers?.host || '')
+    const origin = String(req.headers?.origin || '')
+    const localHost = /^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(host)
+    const sameOrigin = !origin || origin === `http://${host}` || origin === `https://${host}`
+    // 本机其它进程也要证明身份：读 ~/.dsh/dafeiyu/route-token 后带 x-dafeiyu-token（与 dialog / memory 两个口一致）。
+    const tokenFile = process.env.DSH_ROUTE_TOKEN_FILE || path.join(os.homedir(), '.dsh', 'dafeiyu', 'route-token')
+    let expectedToken = ''
+    try {
+      expectedToken = fs.readFileSync(tokenFile, 'utf8').trim()
+    } catch {
+      expectedToken = ''
+    }
+    const tokenOk = !!expectedToken && String(req.headers?.['x-dafeiyu-token'] || '') === expectedToken
+    if (!localHost || !sameOrigin || !tokenOk) {
+      res.writeHead(403, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+      res.end(JSON.stringify({ ok: false, error: 'forbidden' }))
+      return
+    }
     const live = loadConfig()
     const body = JSON.stringify({
       ok: true,
@@ -260,7 +274,6 @@ function applyInner(ctx) {
     res.writeHead(200, {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'access-control-allow-origin': '*',
     })
     res.end(body)
   }
@@ -286,31 +299,10 @@ function applyInner(ctx) {
     // self 没装不影响心情
   }
 
-  // 三个可选挂载点：服务可能比插件晚就绪，所以每 500ms 重试一次，最多 60 秒。
+  // 两个可选挂载点：服务可能比插件晚就绪，所以每 500ms 重试一次，最多 60 秒。
+  // 注：不再挂 systemPrompt —— 心情不进入客户端对话（见文件头 2026-11-01 裁定）。
   const mountOptional = () => {
     let missing = false
-
-    if (!st.promptMounted && cfg.injectPrompt) {
-      const systemPrompt = ctx.get?.('systemPrompt')
-      if (systemPrompt && typeof systemPrompt.section === 'function') {
-        try {
-          const mount = () =>
-            systemPrompt.section({
-              name: 'dsh-feiyu-mood-lite',
-              order: 65,
-              text: promptText,
-            })
-          if (typeof ctx.effect === 'function') ctx.effect(mount)
-          else mount()
-          st.promptMounted = true
-          note('系统提示词段已挂载（order 65）')
-        } catch (error) {
-          note('心情提示词挂载失败：' + messageOf(error))
-        }
-      } else {
-        missing = true
-      }
-    }
 
     if (!st.routed) {
       const webServer = ctx.get?.('webServer')
@@ -447,5 +439,5 @@ function applyInner(ctx) {
 
   const snap = summary(readState(file))
   safeLog(ctx, 'info', `dsh-feiyu-mood-lite ready（心情 ${snap.mood} ${labelOf(snap.mood)}）`)
-  note(`已启动（心情 ${snap.mood}，提示词=${cfg.injectPrompt ? '开' : '关'}，模型=${cfg.provider}/${cfg.model}）`)
+  note(`已启动（心情 ${snap.mood}，仅对外供数/不注入对话，模型=${cfg.provider}/${cfg.model}）`)
 }

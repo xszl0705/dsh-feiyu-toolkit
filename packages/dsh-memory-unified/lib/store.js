@@ -134,6 +134,7 @@ export class MemoryStore {
     keywords = [],
     importance = 0.5,
     category = 'general',
+    visibility = 'private',
     maxItems = 200,
     dedupe = true,
     simThreshold = 3,
@@ -143,6 +144,7 @@ export class MemoryStore {
     assertMemorySafe(text)
     const folder = this.upsertFolder(folderName, keywords)
     const cleaned = String(text || '').trim()
+    const vis = String(visibility || '').toLowerCase() === 'public' ? 'public' : 'private'
     const now = Date.now()
     const hash = simhash64(cleaned)
 
@@ -154,6 +156,7 @@ export class MemoryStore {
         const oldText = String(old.text || '').trim()
         if (oldText === cleaned) {
           mergeKeywords(old, keywords)
+          old.visibility = vis
           old.updatedAt = now
           folder.updatedAt = now
           this.writeFolder(folder)
@@ -163,6 +166,7 @@ export class MemoryStore {
         const ratio = jaccard(tokenize(oldText), tokenize(cleaned))
         if (ratio >= duplicateRatio) {
           mergeKeywords(old, keywords)
+          old.visibility = vis
           old.updatedAt = now
           folder.updatedAt = now
           this.writeFolder(folder)
@@ -181,6 +185,7 @@ export class MemoryStore {
       keywords: keywords.slice(),
       importance: Number.isFinite(importance) ? Math.min(1, Math.max(0, importance)) : 0.5,
       category,
+      visibility: vis,
       status: 'active',
       supersededBy: null,
       validTo: null,

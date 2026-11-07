@@ -73,3 +73,9 @@ HTTP 只读口：`/dsh-dafeiyu-dialog/recent?conversation=owner&limit=6`
 - **别把它当档案**——给人看的留痕在 `pet-diary/chats`，这里只给模型拼上下文
 - 群聊和陌生人各有自己的 conversation key，别跨 key 读
 - 缓存按文件 mtime + size 失效，别绕过 `append` 直接写文件
+
+## 变更记录
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。

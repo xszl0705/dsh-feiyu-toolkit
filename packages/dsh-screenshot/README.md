@@ -23,7 +23,7 @@
 
 ```json
 {
-  "outDir": "<你的截图目录>",
+  "outDir": "",
   "maxWidth": 1400,
   "keepFiles": 80
 }
@@ -48,4 +48,9 @@ node -e "import('./index.js').then(async m => console.log(await m.capture({ maxW
 
 ## 变更记录
 
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · tools 晚就绪的重试逻辑并入 `dsh-plugin-kit/wait-for-tools` 的 `toolsOrRetry()`。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
 - 2026-11-01 · 工具合并：`screenshot_take` / `screenshot_windows` 合并为单入口 `screenshot(action=take|windows)`；旧名不再注册。

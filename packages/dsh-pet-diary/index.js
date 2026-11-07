@@ -1,4 +1,5 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 /**
  * dsh-pet-diary — 桌宠的双层日记（宿主插件）
  *
@@ -44,11 +45,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了也不能影响加载
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {

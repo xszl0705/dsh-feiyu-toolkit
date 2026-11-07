@@ -177,8 +177,9 @@ const { createTurnScanner } = await import('../lib/scanner.js')
   assert.equal(routes[0].path, '/dsh-feiyu-mood/state')
   assert.equal(tools.length, 1, '应注册一个工具')
   assert.equal(tools[0].name, 'feiyu_mood_status')
-  assert.equal(sections.length, 1, '应挂一段系统提示词')
-  assert.ok(sections[0].text().includes('心情'), '提示词里应有心情')
+  // 2026-11-01 用户裁定：心情只对接桌宠与 QQ，不进入客户端对话 ——
+  // 不再挂 systemPrompt（动态段会触发系统提示整份重写），这里断言零注入。
+  assert.equal(sections.length, 0, '不应挂系统提示词段')
 
   const initial = summary(readState(file))
   assert.equal(initial.mood, 60)

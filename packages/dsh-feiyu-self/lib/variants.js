@@ -20,6 +20,15 @@ export const DEFAULT_FLAGS = {
     audience: { channel: ['qq'] },
     owner: 'self-evolution',
   },
+  // local-triage 分诊（2026-11-05）。默认关；开启后 QQ 渠道的极窄确认类短句走本地模型。
+  // 只做「本地 / 不本地」的降级，cheap / frontier 一律按大模型处理——见 brain/lib/triage-bridge.js。
+  'route.tier': {
+    enabled: false,
+    variants: { control: 100 },
+    stickyKey: 'conversation',
+    audience: { channel: ['qq'] },
+    owner: 'local-triage',
+  },
 }
 
 export function bucketOf(key, name) {

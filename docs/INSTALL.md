@@ -7,7 +7,7 @@
 
 ## 0. 先说清楚：这不是一键安装包
 
-21 个插件里，**13 个挂工具**（共 19 个），**8 个是服务层**（不挂工具，被别的插件调用）。
+23 个插件里，**15 个挂工具**，**8 个是服务层**（不挂工具，被别的插件调用）。其中 `dsh-plugin-kit` 是所有插件的公共底座，必须最先装。
 
 装完并不等于全功能可用。分三种情况：
 
@@ -82,6 +82,8 @@ $env:PYTHONPATH = "packages\dsh-draw\pylibs"
 ```
 
 ### 2.4 加插件（一次一个）
+
+**先装公共底座 `packages/dsh-plugin-kit`**：其余 22 个插件都 `import 'dsh-plugin-kit/*'`，它是解析的唯一来源。漏装的表现是所有插件在 apply 阶段报 `ERR_MODULE_NOT_FOUND`，然后整个 bundles 被重置。装法与下面的插件完全一样，只是必须第一个装。
 
 每个插件要改两处：**依赖** + **进 bundles**。
 
@@ -414,7 +416,7 @@ pwsh -File scripts\upgrade.ps1 -SourceDir <新版本解压目录>
 
 脚本做四件事，**你的 `config.json` 不会被覆盖**：
 
-1. 把 21 个 `config.json` 备份到临时目录
+1. 把各插件目录下的 `config.json` 备份到临时目录
 2. 更新代码（git 用户走 `fetch + reset`，不是 `pull`）
 3. 把配置原样放回去
 4. 打印每个插件的版本变化

@@ -40,13 +40,13 @@
 ## 安装
 
 ```bash
-<DSH 安装目录>/resources/runtime/cli/bin/dsh.cmd plugin --profile desktop add "link:<你的工作目录>/github/plugins/dsh-naga-tools"
+dsh plugin --profile desktop add "link:/path/to/dsh-naga-tools"
 ```
 
 卸载：
 
 ```bash
-<DSH 安装目录>/resources/runtime/cli/bin/dsh.cmd plugin --profile desktop remove dsh-naga-tools
+dsh plugin --profile desktop remove dsh-naga-tools
 ```
 
 ## 验证
@@ -89,4 +89,8 @@ node test/naga-smoke.mjs
 
 ## 变更记录
 
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
 - 2026-11-01：把 `naga_app_launcher` / `naga_weather_time` / `naga_system_control` 三个工具合并为单入口 `naga`（`action=list|open|weather|lock|sleep|screen_off|volume_up|volume_down|mute|open_settings`），旧名不再注册；参数名、默认值与系统动作白名单均未变。

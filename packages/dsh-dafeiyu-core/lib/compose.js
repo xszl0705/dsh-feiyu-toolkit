@@ -39,8 +39,10 @@ export function channelRules(channel, voice) {
   return parts.join('；') + '。'
 }
 
-export function buildSystem({ channel = 'client', core }) {
-  return `${core.persona}\n\n【这个渠道怎么说】\n${channelRules(channel, core.voice)}\n只改变表达的长度与媒介，不改变上面的人格、立场与记忆。`
+export function buildSystem({ channel = 'client', core, relations = '' }) {
+  const base = `${core.persona}\n\n【这个渠道怎么说】\n${channelRules(channel, core.voice)}\n只改变表达的长度与媒介，不改变上面的人格、立场与记忆。`
+  if (!relations) return base
+  return `${base}\n\n${relations}`
 }
 
 export function buildPetTemplate(core) {
@@ -52,7 +54,8 @@ export function buildPetTemplate(core) {
     '你在桌宠气泡里说话（这句话会被 TTS 念出来）。',
     `长度：${cfg.length}${cfg.maxChars ? `，不超过 ${cfg.maxChars} 个字` : ''}；口语短句；可以用「呀/嘛/啦/诶」。`,
     '不要解释、不要排比、不要说教、不要用表情符号、不要加引号。',
-    '场景：{{scene}}。{{away}}。{{mood}}。{{memory}}。',
+    '场景：{{scene}}。{{away}}。{{mood}}。',
+    '{{memory}}（只当背景，不逐条复述、不报进度；对不上就只说眼前的事，别编）',
     '直接输出这句话本身。',
   ].join('\n')
 }

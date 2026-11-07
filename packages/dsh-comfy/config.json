@@ -4,6 +4,6 @@
   "outputDir": "",
   "comfyOutputDir": "",
   "comfyInputDir": "",
-  "defaultCheckpoint": "",
-  "defaultControlnet": ""
+  "defaultCheckpoint": "anything-v5-PrtRE.safetensors",
+  "defaultControlnet": "control_v11p_sd15_canny_fp16.safetensors"
 }

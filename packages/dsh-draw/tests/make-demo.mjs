@@ -1,7 +1,7 @@
 /** 用插件自己画一张样例图，作为 dsh-draw 的验收证据。 */
 import { createTools } from '../lib/tools.js'
 
-const tools = Object.fromEntries(createTools({ outputDir: 'docs/assets' }).map((t) => [t.name, t]))
+const tools = Object.fromEntries(createTools({ outputDir: './docs/assets' }).map((t) => [t.name, t]))
 
 const r1 = await tools.draw_chart.execute({
   kind: 'bar',
@@ -12,7 +12,7 @@ const r1 = await tools.draw_chart.execute({
   }],
   title: '同一张图，五条路线的耗时',
   ylabel: '秒',
-  outPath: 'docs/assets/draw-plugin-demo.png',
+  outPath: './docs/assets/draw-plugin-demo.png',
 })
 console.log('chart:', JSON.stringify(r1))
 
@@ -27,6 +27,6 @@ const r2 = await tools.draw_card.execute({
     ['verifyx', '2 个工具已注册，pid 18840'],
   ],
   footer: 'dsh-draw v0.1.0',
-  outPath: 'docs/assets/draw-plugin-card.png',
+  outPath: './docs/assets/draw-plugin-card.png',
 })
 console.log('card:', JSON.stringify(r2))

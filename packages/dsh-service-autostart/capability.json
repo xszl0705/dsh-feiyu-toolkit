@@ -1,22 +1,26 @@
 {
   "id": "autostart",
   "package": "dsh-service-autostart",
-  "version": "0.1.0",
-  "intent": "服务自愈：QQ（NapCat）与微心跳没在跑就静默拉起，带冷却与失败上限",
+  "version": "0.3.0",
+  "intent": "服务自愈：微心跳没在跑就静默拉起（带冷却）；探测 QQ 桥（SnowLuma，3001）端口状态，不拉起桥；bsk daemon（BrowserSkill，52800）没在跑就拉起 foreground 实例",
   "inputs": ["service-name", "caller-config"],
-  "outputs": ["launched", "cooldown", "up", "starting", "missing-launcher", "error"],
+  "outputs": ["launched", "cooldown", "running", "up", "down", "missing-script", "missing-binary", "error"],
   "limits": [
     "只在调用方要求时启动，不自己定时拉起",
-    "账号风控期由调用方关掉（config.autostart.enabled=false）",
-    "同一服务冷却期内不重复拉，避免多实例互踢",
-    "失败 8 次后降到 10 分钟一次，不无限重试"
+    "不自动拉起 QQ 桥（NapCat 已废弃，桥由 SnowLuma 自己维护），只探测端口",
+    "同一服务冷却期内不重复拉（微心跳与 bsk 默认各 10 分钟），避免多实例互踢",
+    "bsk daemon 以 --foreground 挂在宿主进程上，随 DSH 生命周期存活，DSH 退出即停止",
+    "bsk 端口 52800 已在监听时只报 running，不重复拉起",
+    "拉起失败如实报告，不无限重试"
   ],
   "failureModes": [
-    { "code": "MISSING_LAUNCHER", "meaning": "启动脚本或可执行文件不存在", "retry": "不重试，报告路径" },
+    { "code": "MISSING_SCRIPT", "meaning": "微心跳脚本不存在", "retry": "不重试，报告路径" },
+    { "code": "MISSING_BINARY", "meaning": "bsk 可执行文件不存在或没配", "retry": "不重试，报告路径" },
     { "code": "SPAWN_EPERM", "meaning": "受限环境禁止拉起子进程", "retry": "不重试，如实报错" },
-    { "code": "COOLDOWN", "meaning": "冷却期内", "retry": "等冷却结束" }
+    { "code": "COOLDOWN", "meaning": "冷却期内", "retry": "等冷却结束" },
+    { "code": "BSK_DAEMON_DEAD", "meaning": "bsk daemon 端口无人监听（宿主退出或崩溃）", "retry": "冷却后重拉" }
   ],
   "scope": ["owner"],
   "cost": { "cpu": "low", "network": "localhost" },
-  "changedAt": "2026-10-31T16:20:00+08:00"
+  "changedAt": "2026-11-05T20:10:00+08:00"
 }

@@ -1,0 +1,32 @@
+{
+  "name": "dsh-plugin-kit",
+  "version": "0.1.0",
+  "description": "DSH 自研插件共用的最小工具集：生命周期、原子写、load.log、等工具就绪。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./lifecycle": "./lib/lifecycle.js",
+    "./atomic-write": "./lib/atomic-write.js",
+    "./note": "./lib/note.js",
+    "./wait-for-tools": "./lib/wait-for-tools.js",
+    "./pet": "./lib/pet.js",
+    "./process": "./lib/process.js",
+    "./interaction-plan": "./lib/interaction-plan.js"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "README.md",
+    "capability.json"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "kit"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

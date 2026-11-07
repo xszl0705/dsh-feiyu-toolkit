@@ -12,10 +12,11 @@
  */
 
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { KnowledgeStore } from './lib/knowledge.js'
 
 export const name = 'dsh-group-knowledge'
@@ -42,12 +43,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.mkdirSync(HERE, { recursive: true })
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响知识库
-  }
+  kitNote(HERE, message, { mkdir: true })
 }
 
 function state(ctx) {

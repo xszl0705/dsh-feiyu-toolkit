@@ -4,18 +4,16 @@ import assert from 'node:assert/strict'
 import { isComplex, buildReplyPrompt, generateReply, stripMeta } from '../lib/reply.js'
 import { ApprovalStore } from '../lib/approval.js'
 import { cleanReply } from '../lib/prompt.js'
-import { memoryAllowed } from '../index.js'
+import { memoryAllowed, memoryVisibility } from '../index.js'
 
-// ---- 自我提醒不进正文 ----
-assert.equal(stripMeta('这部分记不全了，别让我瞎编。'), '这部分记不全了。')
-assert.equal(stripMeta('我不能瞎编，具体是 5 分钟。'), '具体是 5 分钟。')
+// ---- 协议级隔离（2026-11-04 起）：没有明确 meta 标记时不删正文 ----
+assert.equal(stripMeta('这部分记不全了，别让我瞎编。'), '这部分记不全了，别让我瞎编。')
+assert.equal(stripMeta('我不能瞎编，具体是 5 分钟。'), '我不能瞎编，具体是 5 分钟。')
 assert.equal(stripMeta('这部分记不清。'), '这部分记不清。')
-assert.equal(
-  stripMeta('看到了。上一条我确实又把自我提醒漏出来了，不该出现那句“”。现在这条只回正文，不夹思考。'),
-  '看到了。',
-)
-assert.equal(stripMeta('看见了，这条回复干净，没夹自我提醒。前面两次是我手滑，已经收住了。'), '嗯。')
-console.log('✓ 自我提醒/手滑/上一条这类调试口吻会被清掉')
+// 明确的 meta 块（整行括号标记）才删
+assert.equal(stripMeta('看到了。\n（自我提醒：别漏）'), '看到了。')
+assert.equal(stripMeta('（自我提醒：别漏）'), '')
+console.log('✓ meta 只按协议标记删，不按普通词删正文')
 
 // ---- 记忆作用域 ----
 assert.equal(memoryAllowed({ kind: 'private', userId: 'o' }, 'o'), true)
@@ -23,10 +21,17 @@ assert.equal(memoryAllowed({ kind: 'private', userId: 'x' }, 'o'), false)
 assert.equal(memoryAllowed({ kind: 'group', groupId: 'g', userId: 'o' }, 'o'), false)
 console.log('✓ 只有 owner 私聊能读私有记忆')
 
+// 公开渠道（群聊/陌生人）走公开档：能认关系与形象，拿不到私密条目
+assert.equal(memoryVisibility({ kind: 'group', groupId: 'g', userId: 'o' }, 'o'), 'public')
+assert.equal(memoryVisibility({ kind: 'private', userId: 'x' }, 'o'), 'public')
+assert.equal(memoryVisibility({ kind: 'private', userId: 'o' }, 'o'), '')
+console.log('✓ 群聊与陌生人只检索公开档，owner 私聊才是全量')
+
 const ownerPrompt = buildReplyPrompt({
   identity: '主体',
   event: { kind: 'private', userId: 'o', senderName: '你', text: '上次说的方案' },
   memory: [{ text: '方案定稿：服务化' }],
+  memoryScope: 'owner',
   recent: [{ role: 'user', text: '客户端说过的话' }],
 })
 assert.match(ownerPrompt, /长期记忆/)
@@ -34,6 +39,19 @@ assert.match(ownerPrompt, /服务化/)
 assert.match(ownerPrompt, /最近跨渠道对话/)
 assert.match(ownerPrompt, /客户端说过的话/)
 console.log('✓ owner 的 prompt 含记忆与跨渠道对话')
+
+{
+  const groupPrompt = buildReplyPrompt({
+    identity: '主体',
+    event: { kind: 'group', groupId: 'g', senderName: '群友', text: '你认识主人吗' },
+    memory: [{ text: '主人在群里叫虚世' }],
+    memoryScope: 'group',
+  })
+  assert.match(groupPrompt, /公开记忆/)
+  assert.match(groupPrompt, /虚世/)
+  assert.doesNotMatch(groupPrompt, /长期记忆（只有你知道）/)
+  console.log('✓ 群聊 prompt 用公开记忆标签，不冒充「只有你知道」')
+}
 
 // ---- 复杂回复不再被 120 字截断 ----
 {

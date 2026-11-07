@@ -5,6 +5,7 @@
  * 不改配置、不起子进程、不联网、不切会话——切会话是开关，归人。
  */
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -23,11 +24,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了也不能影响加载
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {

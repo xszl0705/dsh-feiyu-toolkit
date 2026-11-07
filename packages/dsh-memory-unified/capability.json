@@ -1,12 +1,13 @@
 {
   "id": "memory",
   "package": "dsh-memory-unified",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "intent": "长期记忆：写入、检索、去重、软删除、体检、导入导出",
   "inputs": [
     "text",
     "folder",
-    "keywords"
+    "keywords",
+    "visibility"
   ],
   "outputs": [
     "memory-hits",
@@ -17,7 +18,9 @@
     "敏感内容在写入边界直接拒绝",
     "没有任何词面命中时返回空，不硬凑",
     "只记录用户明确交代的事实，不记录对话正文以外的推测",
-    "工具面只有单入口 memory(action)：九个旧工具名不再注册，未知 action 返回 { ok:false }"
+    "工具面只有单入口 memory(action)：九个旧工具名不再注册，未知 action 返回 { ok:false }",
+    "visibility 只有 public/private 两档，默认 private；老库打开时自动补列，已有条目一律按 private 处理",
+    "public 档会进群聊与陌生人私聊的提示词，只允许放关系、称呼、公开形象这类可对外讲的事"
   ],
   "failureModes": [
     {
@@ -38,5 +41,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-01T18:20:00+08:00"
+  "changedAt": "2026-11-02T23:20:00+08:00"
 }

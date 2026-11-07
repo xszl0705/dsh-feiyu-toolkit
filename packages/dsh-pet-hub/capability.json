@@ -1,7 +1,7 @@
 {
   "id": "pet-hub",
   "package": "dsh-pet-hub",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "intent": "桌宠 UI 与本地 HTTP 接口：状态、客户端脚本、宠物页",
   "inputs": [
     "http-request"
@@ -13,7 +13,9 @@
   "limits": [
     "只监听本机回环地址",
     "不提供任意文件读取",
-    "不改桌宠行为规则"
+    "不改桌宠行为规则",
+    "{{memory}} 只读当天工作日志最后一条作为背景（工作区选择与 mind-loop 同规则、只读一个）；读不到退回记忆条数，不影响出句",
+    "状态里的记忆条数优先走 memory-unified 服务，index.json 仅兜底（旧后端遗留）"
   ],
   "failureModes": [
     {
@@ -29,5 +31,5 @@
     "cpu": "low",
     "network": "localhost"
   },
-  "changedAt": "2026-10-31T13:45:00+08:00"
+  "changedAt": "2026-11-01T23:55:00+08:00"
 }

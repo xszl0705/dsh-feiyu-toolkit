@@ -1,4 +1,5 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import { createDayReader } from './lib/reader.js'
 /**
  * dsh-dafeiyu-dialog — 跨渠道对话总线
@@ -12,6 +13,7 @@ import { createDayReader } from './lib/reader.js'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import crypto from 'node:crypto'
 
 export const name = 'dsh-dafeiyu-dialog'
 
@@ -64,12 +66,7 @@ function textOf(data) {
 }
 
 function note(message) {
-  try {
-    fs.mkdirSync(DIR, { recursive: true })
-    fs.appendFileSync(path.join(DIR, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // ignore
-  }
+  kitNote(DIR, message, { mkdir: true })
 }
 
 function install(ctx) {
@@ -164,8 +161,41 @@ export function apply(ctx) {
     // 宿主没有会话事件就只发挥 QQ/桌宠的写入能力
   }
 
+  // —— 本机读取口鉴权 ——
+  // 同源校验挡浏览器跨站；route-token 挡本机其它进程（调用方读 ~/.dsh/dafeiyu/route-token 带 x-dafeiyu-token）。
+  const tokenFile = () =>
+    process.env.DSH_ROUTE_TOKEN_FILE || path.join(os.homedir(), '.dsh', 'dafeiyu', 'route-token')
+  const routeToken = () => {
+    const file = tokenFile()
+    try {
+      const tok = fs.readFileSync(file, 'utf8').trim()
+      if (tok) return tok
+    } catch {}
+    try {
+      const tok = crypto.randomBytes(24).toString('hex')
+      fs.mkdirSync(path.dirname(file), { recursive: true })
+      fs.writeFileSync(file, tok, { mode: 0o600 })
+      return tok
+    } catch {
+      return ''
+    }
+  }
+  const routeAuthorized = (req) => {
+    const host = String(req.headers?.host || '')
+    const origin = String(req.headers?.origin || '')
+    if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(host)) return false
+    if (origin && origin !== `http://${host}` && origin !== `https://${host}`) return false
+    const expected = routeToken()
+    return !!expected && String(req.headers?.['x-dafeiyu-token'] || '') === expected
+  }
+
   // 给 Python 桌宠用的只读口
   const routeHandler = (req, res) => {
+    if (!routeAuthorized(req)) {
+      res.writeHead(403, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+      res.end(JSON.stringify({ ok: false, error: 'forbidden' }))
+      return
+    }
     try {
       const url = new URL(req.url || '/', 'http://127.0.0.1')
       const conversation = url.searchParams.get('conversation') || 'owner'

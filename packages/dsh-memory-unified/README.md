@@ -8,6 +8,12 @@
 > 0.5（P2）加体检与导入导出：`memory_doctor` / `memory_export` / `memory_import`。
 > 设计见 [../docs/MEMORY-DESIGN-v2.md](../docs/MEMORY-DESIGN-v2.md)。
 
+## 边界：写什么、不写什么（2026-11-04 方案 v3）
+
+- **写**：可复用的事实卡——偏好、长期规则、结论、路径、选型理由。一条一句话说完整，带 `keywords`。
+- **不写**：日常进度、今天做了什么、待办流水、白板与交接账本——这些归 auto-memory 的 `.dsh-memory`（日志 / 笔记 / 每轮注入），两边不互抄同一件事。
+- **不注入**：本插件不做每轮自动召回（`autoRecall` 默认 false）。两套并存时：查历史做过什么用 `memory_recall`，查「这条规则/事实」用 `memory`。
+
 ## 0.4 存储后端
 
 | 项 | 说明 |
@@ -36,8 +42,8 @@ node scripts/consolidate.mjs --ratio 0.75        # 合并近重复（旧的标 s
 
 | action | 作用 |
 |---|---|
-| `remember` | 写一条：`text` + `folder`（主题）+ `keywords` + `importance` + `category`；重复内容自动合并/失效 |
-| `search` | 整句检索，中文按「整串 + 相邻二字」切分；**无词面命中时返回空**；可用 `folder` 限定主题 |
+| `remember` | 写一条：`text` + `folder`（主题）+ `keywords` + `importance` + `category` + `visibility`；重复内容自动合并/失效 |
+| `search` | 整句检索，中文按「整串 + 相邻二字」切分；**无词面命中时返回空**；可用 `folder` 限定主题、`visibility` 限定档位 |
 | `related` | 给 id 或文本，找关键词重叠的其它记忆 |
 | `digest` | 总览：几个主题、各多少条、最近更新了什么 |
 | `judge` | 该不该记：0~1 分 + 理由；**含密码/密钥/证件直接拒绝** |
@@ -50,7 +56,27 @@ node scripts/consolidate.mjs --ratio 0.75        # 合并近重复（旧的标 s
 
 > 注意：`memory_log` / `memory_note` / `memory_recall` / `memory_read` / `memory_user` / `memory_rules` 等来自另一个插件（`@a9i5k4/dsh-auto-memory`，负责 `.dsh-memory/` 日志与白板），与本插件的 sqlite 语义库是**两套不同的记忆**。
 
+## 0.5 可见性（公开档）
+
+每条记忆带 `visibility`：
+
+| 值 | 谁能用 | 适合放什么 |
+|---|---|---|
+| `private`（默认） | 只本人私聊 | 路径、账号、行程、设备、费用、日记正文 |
+| `public` | 本人 + 群聊 + 陌生人 | 关系、称呼、公开形象、群友名单 |
+
+- 写入：`memory({action:'remember', text, folder, visibility:'public'})`；重复写入同一条会把可见性改成最新值。
+- 检索：`memory({action:'search', query, visibility:'public'})` 只搜公开档；不传则不限。
+- 老库升级：打开时自动 `ALTER TABLE` 补列，已有条目一律默认 `private`（宁可少讲，不可说漏）。
+
 ## 变更记录
+
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · tools 晚就绪的重试逻辑并入 `dsh-plugin-kit/wait-for-tools` 的 `toolsOrRetry()`。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
+- 2026-11-02：新增 `visibility`（`public` / `private`，默认 private）。`remember` 可写档位，`search` 可按档位过滤；SQLite 老库打开时自动 `ALTER TABLE` 补列，已有条目全部视为 private。用途：群聊/陌生人只带「关系与形象」这类可对外讲的事。
 
 - 2026-11-01：九个工具合并为单入口 `memory`（action 分发），工具定义从 9 个降到 1 个（约 −3.2k 字符）；旧工具名不再注册，各 action 的参数与返回字段不变，外层返回改为 `{ ok, action, result }`。
 

@@ -1,0 +1,24 @@
+{
+  "id": "plugin-kit",
+  "package": "dsh-plugin-kit",
+  "version": "0.1.0",
+  "intent": "给自研 DSH 插件提供唯一的公共实现：生命周期、原子写、note、等工具就绪、桌宠进程、自有 OS 进程视图与安全停止",
+  "inputs": [],
+  "outputs": ["lifecycle-state", "atomic-write-result", "own-process-list"],
+  "limits": [
+    "不是插件：不注册工具/路由/服务，不参与 profile bundles",
+    "只被其他插件 import；包内不得 import 自己（会自引用死循环）",
+    "解析依赖 dsh-plugins/node_modules/dsh-plugin-kit 这条 junction，删了就全仓 ERR_MODULE_NOT_FOUND",
+    "原子写只保证单文件替换原子，不做跨文件事务",
+    "process 只认 pet / mind-loop / verifyx 三类自有进程；SnowLuma 只做端口探测，不列、不停其进程",
+    "停进程前必须先用自有清单校验 pid，不在清单里一律拒绝（防误杀宿主与未知进程）"
+  ],
+  "failureModes": [
+    { "code": "KIT_UNRESOLVED", "meaning": "junction 缺失或指向错误目录", "retry": "按 README 重建 junction" },
+    { "code": "PLUGIN_DISPOSED", "meaning": "lifecycle 已 dispose 后仍有回调触发", "retry": "回调内先查 st.disposed" },
+    { "code": "PID_NOT_OWNED", "meaning": "要停的 pid 不在自有进程清单里，已拒绝", "retry": "先 listOwnProcesses 确认 pid 属于哪类，再按类别停止" }
+  ],
+  "scope": ["internal"],
+  "cost": { "cpu": "none", "network": "none", "tokens": "none" },
+  "changedAt": "2026-11-04T23:05:00+08:00"
+}

@@ -1,16 +1,38 @@
 {
   "name": "dsh-feiyu-brain",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "大肥鱼的认知中枢：注入防护、路由决策、上下文组装、逐条观测；渠道只做适配。",
   "type": "module",
   "main": "index.js",
-  "files": ["index.js", "config.json", "cordis.patch.yml", "README.md"],
+  "files": [
+    "index.js",
+    "config.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
-  "keywords": ["dsh", "dsh-plugin", "router", "context", "guard", "stats"],
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "router",
+    "context",
+    "guard",
+    "stats"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
 }

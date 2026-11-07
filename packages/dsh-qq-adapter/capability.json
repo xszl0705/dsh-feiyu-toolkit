@@ -1,8 +1,8 @@
 {
   "id": "qq",
   "package": "dsh-qq-adapter",
-  "version": "0.2.0",
-  "intent": "收发 QQ 消息：群内 @ 接话、非 @ 交微心跳、陌生人私聊先问主人",
+  "version": "0.3.7",
+  "intent": "收发 QQ 消息：群内 @ 接话、非 @ 交微心跳、陌生人私聊先问主人；主人可手动发文字/图片/语音/文件；收到的图片/表情包/GIF 自动入库并挑值得的收藏",
   "inputs": [
     "message-event",
     "image"
@@ -10,14 +10,44 @@
   "outputs": [
     "reply",
     "vision-caption",
-    "approval-request"
+    "approval-request",
+    "image-message",
+    "voice-message",
+    "file-upload",
+    "sticker-library"
   ],
   "limits": [
     "不能主动加好友或拉群",
-    "账号风控期不自动拉起 NapCat",
+    "不自动拉起 QQ 桥，只探测端口状态",
     "同一条消息最多发送一次",
     "群知识由 dsh-group-knowledge 提供，本插件只做消费；该插件缺席时回退自己开库",
-    "工具已合并为单入口 qq(action)，旧名不再注册"
+    "工具已合并为单入口 qq(action)，旧名不再注册",
+    "发图/发语音/发文件只接本机绝对路径；图片与语音单条 ≤20MB",
+    "语音不自己编码：插件发 record 段（wav/amr），由 SnowLuma 侧转 SILK",
+    "say 参数优先走本机 SSVO 语音网关（uni-voice，127.0.0.1:9882，自然音色）；网关不可用或超时回退 Windows SAPI（lib/say.ps1，仅宿主进程 Medium 可用）",
+    "SAPI 回退只有 zh-CN Huihui 与 en-US Zira 两个音色，音质偏机械；SSVO 未启动时 detail 会标 sapi",
+    "SSVO 网关需另起（uni-voice/run.ps1 start，端口 9882）；gsv/feiyu 引擎要对应 9881/9880 服务在线才会被选中",
+    "say 主力是 gsv（9881，GPT-SoVITS v2ProPlus 克隆飞鱼音色）；Ollama 常驻占显存时 gsv 易超时，网关会退到 edge，detail 里能看到实际引擎",
+    "say 合成前后会暂停/恢复 Ollama（tts.ollama，卸载 keep_alive=0、恢复默认 30m）：8GB 卡放不下 Ollama+gsv，代价是语音与本地模型对话同时使用时对话会短暂卡顿",
+    "自动回复仍只发文字，≤maxReplyChars；图片/语音/文件只走 qq(action=send) 手动通道",
+    "群聊与陌生人私聊只检索 visibility=public 的公开记忆（关系、称呼、公开形象）；owner 私聊才是全量记忆",
+    "群聊的「关系与形象」主要来自 dafeiyu-core 编译进 identity.qq.txt 的静态清单，记忆检索只做补充",
+    "图片库只存 ≤ imageLibrary.maxFileBytes（默认 8MB）的图；超过的只用于看图，不入库",
+    "收藏判断依赖本地 qwen3:4b（imageLibrary.judge）；Ollama 不在线时退化为关键词规则，含隐私/文档类的图仍不收藏",
+    "「存这个 / 别存了」手动指令只在主人私聊生效，群里与陌生人不响应；自动收藏不分来源（AI 判断值得就收，imageLibrary.autoSave 可关）",
+    "客户端拖图靠 attachment id 从 ~/.dsh/attachments/v1/objects 读取；附件 id 就是内容 sha256",
+    "vision_describe 只读 ~/.dsh 附件/图片库、临时目录与 vision.allowedRoots 下的真实图片（按文件头识别），越界路径与非图片直接拒绝；该工具已迁到 dsh-vision，本插件只保留服务端约束说明",
+    "图片库以 imageLibrary 服务对外（current / remember），vision_describe 看图后调它入库；服务缺席时看图只描述、不入库",
+    "真实配置（ownerId / groups / 本机路径）只从 ~/.dsh/dafeiyu/qq.json 读，仓库只带 config.example.json",
+    "执行层四表（inbox/work/effects/attempts）已齐：inbox 按 (source, external_id) 去重入场，work 是 open→running→done 的工单；但 inbox/work 暂无消费方，等 Trigger 正式接管",
+    "图片入库走 SQLite 执行层（effects/attempts），幂等键 image:<sha256>；崩溃后幂等动作重放，非幂等动作只进 unknown 等对账，不自动重发",
+    "纯文字 qq(action=send) 已接执行层：桥明确拒绝记 failed 不重试，网络不确定记 unknown；带附件/语音/文件的发送仍走同步路径",
+    "unknown 只能人工对账：qq(action=reconcile) 不带 id 列出待对账，带 id+decision=sent|not-sent 裁定；只接受 unknown 记录，裁定后不自动重发，补发需手动 qq(send)",
+    "非 @ 群消息交给微心跳，不经过图片库；私聊与 @ 的群消息才会入库",
+    "recent 档按数量/字节滚动淘汰（默认 300 张 / 150MB）；saved 档不会被自动删",
+    "图片库不代替记忆：它是文件库，检索靠 caption/tags 文本，不是向量检索",
+    "Trigger 目前是影子模式：fast path 只记录、不改变现网判断（shouldAnswer 仍负责真实放行）",
+    "影子落盘失败一律静默，绝不影响正常回复；config.triggerShadow=false 可整体关闭"
   ],
   "failureModes": [
     {
@@ -29,6 +59,11 @@
       "code": "RATE_LIMITED",
       "meaning": "本地限频命中",
       "retry": "等待下一分钟"
+    },
+    {
+      "code": "UPLOAD_FAILED",
+      "meaning": "send_private_msg / upload_private_file 返回非 0 retcode（文件过大、路径不存在、风控拒绝）",
+      "retry": "不自动重试，把 detail 返回给调用方"
     },
     {
       "code": "ACCOUNT_RESTRICTED",
@@ -46,5 +81,5 @@
     "network": "ws",
     "tokens": "variable"
   },
-  "changedAt": "2026-11-01T17:40:00+08:00"
+  "changedAt": "2026-11-04T20:35:00+08:00"
 }

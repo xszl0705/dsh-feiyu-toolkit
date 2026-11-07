@@ -118,4 +118,7 @@ MIT。
 
 ## 变更记录
 
+
+- 2026-11-04：阈值统一为 200/250（warn/hard）。`lib/tools.js` 兜底、`config.json`、`tools/budget-watch.mjs` 三处同改；此前 config 是 200/300 而代码兜底仍是 500/800。
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
 - 2026-11-01：把 `budget_status` / `budget_sessions` / `budget_advice` 三个工具合并为单入口 `budget`（`action=status|sessions|advice`），旧名不再注册；参数名、默认值与返回字段均未变。

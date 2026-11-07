@@ -1,4 +1,6 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
+import { detectActivity } from 'dsh-plugin-kit/interaction-plan'
 /**
  * dsh-feiyu-brain — 大肥鱼的认知中枢
  *
@@ -13,6 +15,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { collectStream } from './lib/collect-stream.js'
+import { triageRoute } from './lib/triage-bridge.js'
 
 export const name = 'dsh-feiyu-brain'
 
@@ -33,12 +36,7 @@ const ROUTING = CONFIG.routing || {}
 const CONTEXT = CONFIG.context || {}
 
 function note(message) {
-  try {
-    fs.mkdirSync(path.join(DSH_HOME, 'dafeiyu'), { recursive: true })
-    fs.appendFileSync(path.join(DSH_HOME, 'dafeiyu', 'brain.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // ignore
-  }
+  kitNote(path.join(DSH_HOME, 'dafeiyu'), message, { file: 'brain.log', mkdir: true })
 }
 
 function dayKey(date = new Date()) {
@@ -70,6 +68,25 @@ export function decideRoute(text, options = {}) {
   if (!localEnabled || !localHealthy) return { route: 'big', reason: 'local-disabled' }
   if (GREETING.test(String(text || '').trim())) return { route: 'local', reason: 'greeting' }
   return { route: 'big', reason: 'default-big' }
+}
+
+/**
+ * 带 local-triage 分诊的路由（异步）。
+ *
+ * 只做「把规则放得比 GREETING 宽一点」：原逻辑判 local 的直接返回，否则问桥接层；
+ * 桥接层未启用 / local-triage 缺席 / 出错时，原样返回 decideRoute 的结果。
+ * 返回 shape 与 decideRoute 完全一致，调用方可以只换函数名。
+ */
+export async function decideRouteAsync(text, options = {}) {
+  const base = decideRoute(text, options)
+  const localEnabled = options.localEnabled ?? ROUTING.localEnabled
+  if (!localEnabled || base.route === 'local') return base
+  try {
+    const triaged = await triageRoute(text, options)
+    return triaged || base
+  } catch {
+    return base
+  }
 }
 
 /**
@@ -125,13 +142,15 @@ const FACT_RE = /[?？]|什么|为什么|怎么|如何|谁|哪|多少|几|是不
 
 export function classifyIntent(text) {
   const value = String(text || '').trim()
-  if (!value) return { intent: 'chat', confidence: 0 }
-  if (GREETING_RE.test(value)) return { intent: 'greeting', confidence: 0.95 }
-  if (MEMORY_RE.test(value)) return { intent: 'memory', confidence: 0.85 }
-  if (EMOTION_RE.test(value)) return { intent: 'emotional', confidence: 0.8 }
-  if (TASK_RE.test(value)) return { intent: 'task', confidence: 0.75 }
-  if (FACT_RE.test(value)) return { intent: 'factual', confidence: 0.7 }
-  return { intent: 'chat', confidence: 0.5 }
+  // 2026-11-04 阶段 4.2：在 intent 之上补一层「活动」，供表达计划选长度与格式。
+  const activity = detectActivity(value)
+  if (!value) return { intent: 'chat', activity, confidence: 0 }
+  if (GREETING_RE.test(value)) return { intent: 'greeting', activity, confidence: 0.95 }
+  if (MEMORY_RE.test(value)) return { intent: 'memory', activity, confidence: 0.85 }
+  if (EMOTION_RE.test(value)) return { intent: 'emotional', activity, confidence: 0.8 }
+  if (TASK_RE.test(value)) return { intent: 'task', activity, confidence: 0.75 }
+  if (FACT_RE.test(value)) return { intent: 'factual', activity, confidence: 0.7 }
+  return { intent: 'chat', activity, confidence: 0.5 }
 }
 
 /**
@@ -635,6 +654,7 @@ function install(ctx) {
     guard,
     classifyIntent,
     decideRoute,
+    decideRouteAsync,
     shouldEscalate,
     buildContext,
     contextStats,
@@ -704,7 +724,7 @@ export function apply(ctx) {
     '/dsh-feiyu-brain/guard': async (req, res) => json(res, 200, { ok: true, ...guard((await readBody(req)).text) }),
     '/dsh-feiyu-brain/route': async (req, res) => {
       const body = await readBody(req)
-      json(res, 200, { ok: true, ...decideRoute(body.text || '', body) })
+      json(res, 200, { ok: true, ...(await decideRouteAsync(body.text || '', body)) })
     },
     '/dsh-feiyu-brain/context': async (req, res) => {
       const body = await readBody(req)

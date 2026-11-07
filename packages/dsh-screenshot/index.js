@@ -1,4 +1,6 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { toolsOrRetry } from 'dsh-plugin-kit/wait-for-tools'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 /**
  * dsh-screenshot — 让模型自己看屏幕。
  *
@@ -14,8 +16,6 @@ import { fileURLToPath } from 'node:url'
 
 export const name = 'dsh-screenshot'
 
-/** 跟着 DSH_HOME 走，不写死装机路径。 */
-const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SCRIPT = path.join(HERE, 'scripts', 'screenshot.ps1')
 const TMP = path.join(HERE, '.tmp')
@@ -23,6 +23,8 @@ fs.mkdirSync(TMP, { recursive: true })
 
 /** 客户端「截图」按钮用的端点：抓一张全屏 PNG，二进制直接回给浏览器。 */
 const ROUTE = '/dsh-screenshot/capture'
+
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 
 const DEFAULTS = {
   outDir: path.join(DSH_HOME, 'screens'),
@@ -39,11 +41,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // ignore
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {
@@ -275,25 +273,11 @@ function applyInner(ctx) {
   registerRoute(ctx, config, state)
   if (state.registered) return
 
-  const tools = ctx.get?.('tools')
-  if (!tools || typeof tools.register !== 'function') {
-    // 宿主 tools 服务可能比插件晚就绪：250ms 重试，最多 60 秒（和 memory/qq 一致）
-    if (!state.since) state.since = Date.now()
-    if (!state.waiting && Date.now() - state.since < 60000) {
-      state.waiting = true
-      state.later(() => {
-        state.waiting = false
-        try {
-          applyInner(ctx)
-        } catch (error) {
-          note('重试注册截图工具失败：' + String((error && error.message) || error))
-        }
-      }, 250)
-    } else if (!state.waiting) {
-      note('60s 内没等到 tools 服务，screenshot 未注册')
-    }
-    return
-  }
+  const tools = toolsOrRetry(ctx, state, () => applyInner(ctx), {
+    warn: (seconds) => note(`${seconds}s 内没等到 tools 服务，screenshot 未注册`),
+    log: (message) => note(message),
+  })
+  if (!tools) return
   state.registered = true
 
   const shots = []

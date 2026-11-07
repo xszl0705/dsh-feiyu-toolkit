@@ -1,6 +1,6 @@
 # dsh-feiyu-toolkit
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai) 用的 21 个自研插件。**零第三方 npm 依赖**，纯 ES Module，各自独立可装可卸。
+给 [DeepSeek Harness](https://github.com/deepseek-ai) 用的 23 个自研插件。**零第三方 npm 依赖**，纯 ES Module，各自独立可装可卸；所有插件共用同一个底座 `dsh-plugin-kit`（先装它）。
 
 > ## ⚠️ 装之前请先读 [docs/INTRODUCTION.md](docs/INTRODUCTION.md)
 >
@@ -15,6 +15,12 @@
 > 详细的能力边界、风险清单、每个插件碰什么文件，都在 [docs/INTRODUCTION.md](docs/INTRODUCTION.md)。
 
 ## 插件一览
+
+### 公共底座
+
+| 插件 | 做什么 | 外部依赖 |
+|---|---|---|
+| **dsh-plugin-kit** | 所有插件共用的最小工具集：生命周期、原子写、`load.log`、等工具就绪、进程分类、桌宠交互计划 | 无（**其余插件都 import 它，必须最先装**） |
 
 ### 绘图与视觉
 
@@ -33,6 +39,7 @@
 | **dsh-memory-unified** | 跨会话长期记忆：SQLite + FTS5、写入去重、失效语义、拒答检索 | 无 |
 | **dsh-group-knowledge** | 群知识库，按群作用域存储，与私有记忆分开 | 无 |
 | **dsh-budget-watch** | 会话 token 预算看板：步数、累计消耗、每步均值、缓存命中率，超线给交接建议 | 无 |
+| **dsh-local-triage** | 本地小模型分诊 + 工具输出确定性压缩，把不值得花云端的请求挡在云端之外 | 本地 Ollama（可选） |
 
 ### 人格与对话
 
@@ -88,16 +95,18 @@ cd dsh-feiyu-toolkit
 # 2. dsh-draw 需要先补 Python 依赖（不用 pip，详见 scripts/setup-pylibs.ps1 开头的说明）
 pwsh -File scripts\setup-pylibs.ps1
 
-# 3. 把要用的插件装进 profile（一步步来，别一次全加，详见 docs/INSTALL.md）
+# 3. 先装公共底座，再装要用的插件（一步步来，别一次全加，详见 docs/INSTALL.md）
+dsh plugin add link:<repo>\packages\dsh-plugin-kit
 dsh plugin add link:<repo>\packages\dsh-draw
 ```
 
-不想装某个插件就直接跳过，五个互相独立。
+不想装某个插件就直接跳过——除 `dsh-plugin-kit` 是公共底座之外，其余互相独立。
 
 ## 目录结构
 
 ```
 packages/          每个插件一个目录，各自独立可发布
+  dsh-plugin-kit/  公共底座（所有插件的 import 目标，必须先装）
   dsh-draw/        含 lib/py/*.py（matplotlib / Pillow 渲染脚本）
   dsh-comfy/       含 extra-model-paths.example.yaml（ComfyUI 外挂模型模板）
   ...
@@ -118,6 +127,7 @@ docs/
 2. **子进程不能用管道通信**——`child_process` 的 `stdio: 'pipe'` 在沙箱里返回 `spawn EPERM`。`dsh-draw` 因此改成文件当 IPC：参数写 `spec.json`，结果写 `result.json`。
 3. **ComfyUI 的目录参数必须对得上**——`comfyOutputDir` / `comfyInputDir` 要和启动 ComfyUI 时传的 `--output-directory` / `--input-directory` 一字不差，否则报 `NO_FILE`。
 4. **ComfyUI 不归插件管**——`dsh-comfy` 不会帮你启服务。它是常驻推理服务，占显存，什么时候开归你。
+5. **`dsh-plugin-kit` 必须能被解析到**——所有插件写的是 `import 'dsh-plugin-kit/lifecycle'` 这种包名导入，不是相对路径。从源码装时，`dsh-plugin-kit` 要么作为同目录兄弟包被 link 进来，要么手动放进 profile 的 `node_modules`。漏装它的表现是每个插件都在 apply 阶段报 `ERR_MODULE_NOT_FOUND`。
 
 ## 许可
 

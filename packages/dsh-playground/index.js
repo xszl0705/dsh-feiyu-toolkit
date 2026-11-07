@@ -12,11 +12,12 @@
  *   - 不在 apply 时启动任何东西
  */
 
-import fs from 'node:fs'
 import os from 'node:os'
+import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { scanConflicts } from './lib/conflict.js'
 import {
   checkProfile,
@@ -24,14 +25,13 @@ import {
   installPlugin,
   instanceStatus,
   portOpen,
+  readInstanceState,
   startInstance,
   stopInstance,
 } from './lib/playground.js'
 
 export const name = 'dsh-playground'
 
-/** 跟着 DSH_HOME 走，不写死装机路径。 */
-const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SERVICE_KEY = Symbol.for('dsh-playground.service')
 const STATE_KEY = Symbol.for('dsh-playground.state')
@@ -43,7 +43,7 @@ const DEFAULTS = {
   profilesRoot: '',
   port: 3080,
   bootTimeoutMs: 45000,
-  backupRoot: path.join(DSH_HOME, 'backups'),
+  backupRoot: path.join(os.homedir(), '.dsh', 'backups'),
 }
 
 function loadConfig() {
@@ -56,11 +56,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响功能
-  }
+  kitNote(HERE, message)
 }
 
 function state(ctx) {
@@ -83,6 +79,18 @@ export function apply(ctx) {
   const profilesRoot = config.profilesRoot || defaultProfilesRoot()
   const settings = { ...config, profilesRoot }
 
+  // 宿主重启后内存里的 pid 没了：从落盘记录补回来（超过 24h 视为过期，避免杀到复用的 pid）
+  function hydrate() {
+    if (st.shared.pid) return
+    const saved = readInstanceState()
+    const age = Date.now() - Date.parse(String(saved.at || ''))
+    if (saved.pid && Number.isFinite(age) && age >= 0 && age < 24 * 3600 * 1000) {
+      st.shared.pid = Number(saved.pid)
+      st.shared.profile = String(saved.profile || '')
+      st.shared.port = Number(saved.port) || null
+    }
+  }
+
   async function run(action, fn) {
     st.calls += 1
     st.lastAction = action
@@ -99,10 +107,16 @@ export function apply(ctx) {
 
   const api = {
     id: 'playground',
-    status: () => run('status', () => instanceStatus({ state: st.shared, config: settings })),
+    status: () => run('status', () => {
+      hydrate()
+      return instanceStatus({ state: st.shared, config: settings })
+    }),
     start: ({ profile = 'verifyx', port } = {}) =>
       run('start', () => startInstance({ profile, port, state: st.shared, config: settings, note })),
-    stop: () => run('stop', () => stopInstance({ state: st.shared, note })),
+    stop: () => run('stop', () => {
+      hydrate()
+      return stopInstance({ state: st.shared, note })
+    }),
     check: ({ profile = 'verifyx' } = {}) => run('check', () => checkProfile({ profile, config: settings })),
     conflicts: ({ profile = 'verifyx' } = {}) =>
       run('conflicts', () => scanConflicts({ profilesRoot: settings.profilesRoot, profile })),
@@ -252,7 +266,7 @@ function installTools(ctx, api, st, settings) {
             packageName: { type: 'string', description: 'install 用（必填）：插件包名，如 dsh-feiyu-look' },
             sourceDir: {
               type: 'string',
-              description: 'install 用：源码目录（link: 安装时必填），如 <你的插件源码目录>',
+              description: 'install 用：源码目录（link: 安装时必填），如 D:\plugins\dsh-feiyu-look',
             },
           },
           required: ['action'],

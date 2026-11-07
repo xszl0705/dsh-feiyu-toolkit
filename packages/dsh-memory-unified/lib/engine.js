@@ -76,15 +76,17 @@ function isActive(item) {
 }
 
 /** 在全部文件夹里检索，返回按分数排序的命中条目。无词面命中即拒答。 */
-export function searchFolders(folders, query, { limit = 8, minScore = DEFAULT_MIN_SCORE, includeInactive = false } = {}) {
+export function searchFolders(folders, query, { limit = 8, minScore = DEFAULT_MIN_SCORE, includeInactive = false, visibility = '' } = {}) {
   const queryTokens = tokenize(query)
   if (queryTokens.length === 0) return []
+  const wantVisibility = String(visibility || '').trim()
   const hits = []
   for (const folder of folders) {
     const folderTokens = tokenize([folder.name, ...(folder.keywords || [])].join(' '))
     const folderScore = overlapScore(queryTokens, folderTokens)
     for (const item of folder.items || []) {
       if (!includeInactive && !isActive(item)) continue
+      if (wantVisibility && (item.visibility || 'private') !== wantVisibility) continue
       const itemTokens = tokenize([item.text, ...(item.keywords || []), item.category || ''].join(' '))
       const hit = hitWeight(queryTokens, itemTokens)
       if (hit <= 0) continue // 拒答闸：一个词都没命中就别拿出来

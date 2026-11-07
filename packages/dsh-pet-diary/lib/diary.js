@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { atomicWrite } from 'dsh-plugin-kit/atomic-write'
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -44,8 +45,7 @@ function readText(file) {
 }
 
 function writeText(file, text) {
-  ensureDir(path.dirname(file))
-  fs.writeFileSync(file, text, 'utf8')
+  atomicWrite(file, text)
 }
 
 function appendText(file, text) {

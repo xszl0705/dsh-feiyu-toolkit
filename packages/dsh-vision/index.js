@@ -12,11 +12,14 @@
  */
 
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { toolsOrRetry } from 'dsh-plugin-kit/wait-for-tools'
 import { askVision, askVisionBytes } from './lib/vision.js'
 import { buildVisionContextPrompt } from './lib/vision-context.js'
+import { resolveVisionPath } from './lib/vision-path.js'
 import { installClientVisionContext } from './lib/client-vision-context.js'
 import { codecState } from './lib/codec.js'
 import { cropImage, paletteOfImage } from './lib/image-ops.js'
@@ -38,11 +41,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响看图
-  }
+  kitNote(HERE, message)
 }
 
 function state(ctx) {
@@ -361,6 +360,97 @@ export function apply(ctx) {
   st.own(() => {
     if (globalThis[SERVICE_KEY] === api) delete globalThis[SERVICE_KEY]
   })
+
+  /** 别的插件提供的服务：拿不到就当没有，不影响看图本身。 */
+  function serviceOf(name, symbol) {
+    try {
+      const svc = ctx.get?.(name)
+      if (svc) return svc
+    } catch {
+      // 宿主没这个服务
+    }
+    return symbol ? globalThis[symbol] || null : null
+  }
+
+  /**
+   * 看图工具 vision_describe：工具名沿用注册在 qq 时的名字。
+   * 2026-11-04 从 dsh-qq-adapter 迁回本插件——看图是感知能力，不该由某个渠道提供。
+   * 需要的外部能力都按调用时取：记忆、对话、图片库。
+   */
+  function registerVisionDescribe() {
+    const tools = toolsOrRetry(ctx, st, () => registerVisionDescribe(), {
+      warn: (seconds) => note(`${seconds}s 内没等到 tools 服务，vision_describe 未注册`),
+      log: (message) => note(message),
+    })
+    if (!tools) return
+    if (st.toolsRegistry === tools) return
+    st.toolsRegistry = tools
+    const handle = tools.register({
+      name: 'vision_describe',
+      description: '读取本地图片并用 DeepSeek 视觉模型描述；客户端拖图显示占位时，用这个兜底。只接受 ~/.dsh 附件、图片库、临时目录或 vision.allowedRoots 下的真实图片。',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: '图片绝对路径（受 vision.allowedRoots 白名单限制）' },
+          question: { type: 'string', description: '想问图片什么；省略时描述内容' },
+          useContext: { type: 'boolean', description: '是否检索相关记忆和最近对话，默认 true' },
+        },
+        required: ['path'],
+      },
+      output: {
+        schema: { type: 'object', properties: { ok: { type: 'boolean' }, text: { type: 'string' }, detail: { type: 'string' } } },
+        render: (_args, value) => [{ type: 'text', text: value.ok ? value.text : '看图失败：' + value.detail }],
+      },
+      timeoutMs: 60000,
+      isConcurrencySafe: () => true,
+      execute: async (args) => {
+        try {
+          const { file, mediaType: type, bytes } = resolveVisionPath(args?.path, {
+            extraRoots: config.vision?.allowedRoots || [],
+          })
+          const question = String(args?.question || '先逐字读出图中的文字/数字，再描述布局、对象、异常和结论；不要泛泛而谈；看不清就说看不清。')
+          let memory = []
+          let recent = []
+          if (args?.useContext !== false) {
+            try {
+              memory = serviceOf('memory', Symbol.for('dsh-memory-unified.service'))?.search?.(question, { limit: 5 }) || []
+            } catch {
+              memory = []
+            }
+            try {
+              recent = serviceOf('dialog', Symbol.for('dsh-dafeiyu-dialog.service'))?.recent?.({ conversation: 'owner', limit: 6 }) || []
+            } catch {
+              recent = []
+            }
+          }
+          const prompt = api.buildVisionContextPrompt({ question, memory, recent })
+          const result = await api.askVisionBytes({ prompt, images: [{ mediaType: type, bytes }], maxTokens: 800 })
+          if (!result || result.ok === false) {
+            return { ok: false, text: '', detail: String(result?.error || result?.text || '视觉模型没返回内容') }
+          }
+          let extra = ''
+          const lib = serviceOf('imageLibrary', Symbol.for('dsh-image-library.service'))
+          if (lib?.remember) {
+            try {
+              const saved = lib.remember({
+                bytes,
+                caption: result.text,
+                source: { channel: 'client', kind: 'file', name: path.basename(file) },
+              })
+              if (saved?.ok) extra = `\n\n（已入库 id=${saved.record.id}，说「存这个」可收藏）`
+            } catch {
+              // 入库失败不影响看图
+            }
+          }
+          return { ok: true, text: result.text + extra, detail: '' }
+        } catch (error) {
+          return { ok: false, text: '', detail: String((error && error.message) || error) }
+        }
+      },
+    })
+    st.own(() => handle?.dispose?.())
+  }
+  registerVisionDescribe()
 
   // 把状态报给 self
   try {

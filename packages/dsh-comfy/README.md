@@ -23,16 +23,16 @@ ComfyUI 是常驻推理服务，占 GPU、会和 Ollama 抢那 8GB 显存。什�
 ComfyUI 必须用这几个参数启动，且目录要和 `config.json` 对上：
 
 ```powershell
-$base = '<你的 ComfyUI 整合包目录>'
+$base = 'E:\SD\ComfyUI-aki\ComfyUI-aki-v2\ComfyUI-aki-v2'
 $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'
 $env:GIT_PYTHON_GIT_EXECUTABLE="$base\git\cmd\git.exe"; $env:GIT_PYTHON_REFRESH='quiet'
 Set-Location "$base\ComfyUI"
 & "$base\python\python.exe" -u main.py --listen 127.0.0.1 --port 8188 `
-  --extra-model-paths-config '<插件源码目录>\dsh-comfy\extra-model-paths.yaml' `
-  --output-directory '<你的工作目录>\_tmp\comfy-output' `
-  --input-directory  '<你的工作目录>\_tmp\comfy-input' `
-  --temp-directory   '<你的工作目录>\_tmp\comfy-temp' `
-  --user-directory   '<你的工作目录>\_tmp\comfy-user' `
+  --extra-model-paths-config '<工作区>\dsh-plugins\dsh-comfy\extra-model-paths.yaml' `
+  --output-directory '<工作区>\_tmp\comfy-output' `
+  --input-directory  '<工作区>\_tmp\comfy-input' `
+  --temp-directory   '<工作区>\_tmp\comfy-temp' `
+  --user-directory   '<工作区>\_tmp\comfy-user' `
   --disable-auto-launch
 ```
 
@@ -42,7 +42,7 @@ Set-Location "$base\ComfyUI"
 |---|---|
 | `PYTHONIOENCODING=utf-8` | rgthree 输出 emoji → `UnicodeEncodeError: gbk codec`，进程直接崩 |
 | `--temp-directory` 等四个目录指到工作区 | 写 `ComfyUI\temp` 报 `WinError 5`（沙箱只让写工作区） |
-| `--extra-model-paths-config` | 模型全在 `<你的 ComfyUI 整合包目录>\{控制网,模型}` 外层，不挂载就一个模型都看不到 |
+| `--extra-model-paths-config` | 模型全在 `E:\SD\ComfyUI-aki\{控制网,模型}` 外层，不挂载就一个模型都看不到 |
 
 ## 配置
 
@@ -52,17 +52,31 @@ Set-Location "$base\ComfyUI"
 |---|---|---|
 | `enabled` | `true` | 关掉就不注册工具 |
 | `baseUrl` | `http://127.0.0.1:8188` | ComfyUI 地址 |
-| `outputDir` | `<你的工作目录>\out\comfy` | 插件把图复制到这里 |
-| `comfyOutputDir` | `<你的工作目录>\_tmp\comfy-output` | **必须等于 ComfyUI 的 `--output-directory`** |
-| `comfyInputDir` | `<你的工作目录>\_tmp\comfy-input` | **必须等于 ComfyUI 的 `--input-directory`** |
+| `outputDir` | `<工作区>\out\comfy` | 插件把图复制到这里 |
+| `comfyOutputDir` | `<工作区>\_tmp\comfy-output` | **必须等于 ComfyUI 的 `--output-directory`** |
+| `comfyInputDir` | `<工作区>\_tmp\comfy-input` | **必须等于 ComfyUI 的 `--input-directory`** |
 | `defaultCheckpoint` | `anything-v5-PrtRE.safetensors` | 默认底模 |
 | `defaultControlnet` | `control_v11p_sd15_canny_fp16.safetensors` | 默认 ControlNet |
+
+## 可用底模（全部 SD1.5，与现有 ControlNet 兼容）
+
+放在 `E:\SD\ComfyUI-aki\模型`，由 `extra-model-paths.yaml` 挂到 ComfyUI 的 `checkpoints`：
+
+| 文件 | 体量 | 定位 |
+|---|---|---|
+| `anything-v5-PrtRE.safetensors` | 1.99GB | 默认值，二次元/插画 |
+| `Counterfeit-V3.0_fp16.safetensors` | 3.95GB | 二次元，线条干净、人像稳定 |
+| `DreamShaper_8_pruned.safetensors` | 1.99GB | 通用半写实，场景/风景/人物都行 |
+
+调用时 `ckpt` 传文件名即可；不传则用 `config.defaultCheckpoint`。**加新底模只做两件事**：文件丢进上述目录 → 重启 ComfyUI（它只在启动时扫一次模型目录，热加不认）。
+
+下载走 `tools\download-model.mjs`（断点续传 + safetensors 头校验），示例 source 用 `https://hf-mirror.com/<repo>/resolve/main/<file>`。
 
 ## 一个实现细节
 
 ControlNet 用的是 ComfyUI **原生 `Canny` 节点**，不是 `controlnet_aux` 那一堆预处理器。原因：`_aux` 的 `LineArtPreprocessor` 之类要先下载外部权重并写进 `custom_nodes\comfyui_controlnet_aux\ckpts`，沙箱里会 `WinError 5`。原生 Canny 不需要任何权重。
 
-## 实测数据（8GB 显存笔记本）
+## 实测数据（RTX 4060 Laptop 8GB）
 
 | 场景 | 耗时 |
 |---|---|
@@ -78,7 +92,7 @@ ControlNet 用的是 ComfyUI **原生 `Canny` 节点**，不是 `controlnet_aux`
 - 分辨率 512~768 为宜；SDXL 底模缺失，上限就在这。
 - 与 Ollama 同开会 OOM（qwen3:4b 常驻约 2.7GB）。
 - 内容审核：本地模型没有云端审核，但对外发布仍要自己把握。
-- **`comfyOutputDir` 默认指向 `<你的工作目录>\_tmp\comfy-output`**——那是临时工作目录，被清理后插件会报 `NO_FILE`。要长期稳定就把 ComfyUI 的 `--output-directory` 和这个配置一起挪到 `<你的工作目录>\out\comfy-io` 这类非临时目录。
+- **`comfyOutputDir` 默认指向 `<工作区>\_tmp\comfy-output`**——那是临时工作目录，被清理后插件会报 `NO_FILE`。要长期稳定就把 ComfyUI 的 `--output-directory` 和这个配置一起挪到 `<工作区>\out\comfy-io` 这类非临时目录。
 
 ## 测试
 
@@ -94,5 +108,10 @@ $node = '<你的 DSH 自带 node.exe 路径>'
 
 ## 变更记录
 
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
 - 2026-11-01 · 0.1.0 · 首个版本：`comfy_status` / `comfy_generate` / `comfy_controlnet`，原生 Canny 替代 `_aux` 预处理器。
 - 2026-11-01 · 工具合并：`comfy_status` / `comfy_generate` / `comfy_controlnet` 合并为单入口 `comfy(action=status|generate|controlnet)`；旧名不再注册。
+- 2026-11-01 · 底模扩到 3 个：新增 `Counterfeit-V3.0_fp16`（二次元）与 `DreamShaper_8_pruned`（通用半写实），默认仍是 anything-v5；补 `tools\download-model.mjs` 下载器与「可用底模」小节。

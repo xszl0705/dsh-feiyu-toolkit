@@ -9,6 +9,8 @@ const FIX = path.join(path.dirname(fileURLToPath(import.meta.url)), '.tmp-dialog
 fs.rmSync(FIX, { recursive: true, force: true })
 fs.mkdirSync(FIX, { recursive: true })
 process.env.DSH_HOME = FIX
+// 鉴权 token 落测试目录，别碰真实 ~/.dsh/dafeiyu/route-token
+process.env.DSH_ROUTE_TOKEN_FILE = path.join(FIX, 'route-token')
 
 const mod = await import('../index.js?test=' + Date.now())
 
@@ -77,4 +79,22 @@ assert.ok(
 )
 console.log('✓ 客户端事件：user/message 与 assistant/message 都入库，运行时注入被过滤')
 console.log('✓ 对话总线：跨渠道写入、按会话隔离、owner 不串陌生人')
+
+// —— 读取口鉴权：无 token/跨源/非本机 Host 一律 403，带 token 才 200 ——
+function callRoute(headers) {
+  const res = { statusCode: 0, body: '', writeHead(code) { this.statusCode = code }, end(chunk) { if (chunk) this.body += String(chunk) } }
+  routes[0].handler({ url: '/dsh-dafeiyu-dialog/recent?conversation=owner&limit=2', headers }, res)
+  return res
+}
+const denyNoToken = callRoute({ host: '127.0.0.1:50323' })
+assert.equal(denyNoToken.statusCode, 403, '无 token 应 403')
+const denyCrossOrigin = callRoute({ host: '127.0.0.1:50323', origin: 'http://evil.example', 'x-dafeiyu-token': fs.readFileSync(process.env.DSH_ROUTE_TOKEN_FILE, 'utf8').trim() })
+assert.equal(denyCrossOrigin.statusCode, 403, '跨源应 403')
+const denyRemoteHost = callRoute({ host: '10.0.0.5:50323' })
+assert.equal(denyRemoteHost.statusCode, 403, '非本机 Host 应 403')
+const token = fs.readFileSync(process.env.DSH_ROUTE_TOKEN_FILE, 'utf8').trim()
+const allowed = callRoute({ host: '127.0.0.1:50323', 'x-dafeiyu-token': token })
+assert.equal(allowed.statusCode, 200, '带 token 的本机同源请求应 200')
+assert.ok(JSON.parse(allowed.body).rows.length >= 1, '应返回对话行')
+console.log('✓ 读取口鉴权：无 token / 跨源 / 非本机 Host 均 403，带 token 200')
 console.log('\n全部通过')

@@ -51,15 +51,15 @@ P1 换 FSRS-6（`ts-fsrs`）。
 
 ```powershell
 $env:ELECTRON_RUN_AS_NODE = '1'
-& '<DSH 安装目录>\DeepSeek Harness.exe' '<插件源码目录>\dsh-finance-learn\tests\run-all.mjs'
+& '<DSH 安装目录>\DeepSeek Harness.exe' '<工作区>\dsh-plugins\dsh-finance-learn\tests\run-all.mjs'
 ```
 
-结果同时写到 `<你的工作目录>/_tmp/finance-learn-test.json`（stdout 会丢）。
+结果同时写到 `<系统临时目录>/finance-learn-test.json`（stdout 会丢）。
 
 实网冒烟：
 
 ```powershell
-& '<DSH 安装目录>\DeepSeek Harness.exe' '<插件源码目录>\dsh-finance-learn\tests\live.mjs'
+& '<DSH 安装目录>\DeepSeek Harness.exe' '<工作区>\dsh-plugins\dsh-finance-learn\tests\live.mjs'
 ```
 
 ## 配置
@@ -77,3 +77,9 @@ $env:ELECTRON_RUN_AS_NODE = '1'
 - 不接券商、不下单、不登录账户
 - 不做定时推送（提醒交给用户主动触发）
 - 行情可能延迟或休市；宏观数据是世界银行年频，滞后约一年，输出必须带数据截止年
+
+## 变更记录
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。

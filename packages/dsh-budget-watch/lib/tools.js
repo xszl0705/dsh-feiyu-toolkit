@@ -9,8 +9,8 @@ import path from 'node:path'
 import { collectSessions } from './usage.js'
 
 const DEFAULTS = {
-  stepsWarn: 500,
-  stepsHard: 800,
+  stepsWarn: 200,
+  stepsHard: 250,
   tokensWarn: 200000000,
   perStepWarn: 400000,
   cacheRateWarn: 0.7,

@@ -10,9 +10,10 @@
  * 什么时候开什么时候关归用户决定。服务没起时工具只报错并给出启动命令位置。
  */
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { createTools } from './lib/tools.js'
 
 export const name = 'dsh-comfy'
@@ -39,11 +40,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响功能
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {

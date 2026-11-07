@@ -1,0 +1,36 @@
+{
+  "name": "dsh-local-triage",
+  "version": "0.1.0",
+  "description": "本地小模型分诊 + 确定性压缩：把不值得花云端的请求挡在云端之外，把工具输出压成该有的体积。",
+  "type": "module",
+  "main": "index.mjs",
+  "files": [
+    "index.mjs",
+    "lib",
+    "config.json",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "local-model",
+    "routing",
+    "token-cost"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tests/rules.test.mjs && node tests/compress.test.mjs",
+    "eval": "node tools/eval-triage.mjs"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
+}

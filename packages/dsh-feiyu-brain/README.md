@@ -40,6 +40,7 @@
 | `contextPlan({ intent, scope })` | 六组件字符预算：instr / know / tools / mem / state / query |
 | `buildContext({ text, conversation, scope, intent })` | `{ memory, recent, capabilities, plan }` |
 | `decideRoute(text)` | `{ route: 'local'\|'big', reason }` |
+| `decideRouteAsync(text, { conversation })` | 同上；先过 local-triage 分诊（灰度 flag `route.tier`，默认关，缺席即回落旧逻辑） |
 | `shouldEscalate(reply, text)` | `''` 表示不升级，否则返回原因 |
 | `recordStats(row)` / `summary(date)` | 按日 jsonl 统计 |
 | `runReflection(ctx, { date, force })` | 反思：提炼记忆，只有真写入才算成功 |
@@ -49,3 +50,11 @@
 - 它是服务不是工具，别指望模型直接调
 - `escalateOnReasoningLeak` 这类配置项现在真的生效了，改之前想清楚
 - 反思失败要重试是对的，但**服务缺失时它不会虚报成功**——别改成「看起来完成」
+
+## 变更记录
+
+- 2026-11-05 · 接入 local-triage 分诊：新增 `lib/triage-bridge.js` 与 `decideRouteAsync()`；灰度 flag `route.tier`（默认关、按会话 sticky 分桶），local-triage 缺席或分诊出错时静默回落旧逻辑。HTTP `/dsh-feiyu-brain/route` 改走异步版本。新增 `tests/triage-bridge.test.mjs`（7 项，已进 `verify.mjs`）；全量回归 84/84。
+- 2026-11-05 · `triage-bridge.js` 目录候选跟随 `dsh-local-triage` 改名：新名优先，旧名 `local-triage` 保留为兼容候选，改名前的部署仍能命中。
+- 2026-11-05 · 复核使用说明与实现一致（服务方法、HTTP 端点、配置项），无内容修正；本次仅补这条核对记录。
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。

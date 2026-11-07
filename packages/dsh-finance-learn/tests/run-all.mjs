@@ -1,6 +1,6 @@
 /**
  * 统一入口：本机 stdout 会丢（Electron 以 node 模式跑时），所以结果同时写文件。
- * 跑法：ELECTRON_RUN_AS_NODE=1 "<DSH 自带 exe>" tests/run-all.mjs
+ * 跑法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tests/run-all.mjs
  */
 import fs from 'node:fs'
 import os from 'node:os'

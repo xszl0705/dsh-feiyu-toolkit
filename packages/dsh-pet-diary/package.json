@@ -1,16 +1,37 @@
 {
   "name": "dsh-pet-diary",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "桌宠的三层日记（日常/隐私/工作）+ 独立例行流程：到点自己生成并写文件，不经过会话、不产生提醒。零运行时依赖。",
   "type": "module",
   "main": "index.js",
-  "files": ["index.js", "lib", "config.json", "cordis.patch.yml", "README.md"],
+  "files": [
+    "index.js",
+    "lib",
+    "config.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
-  "keywords": ["dsh", "dsh-plugin", "diary", "pet"],
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "diary",
+    "pet"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
 }

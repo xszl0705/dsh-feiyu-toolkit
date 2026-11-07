@@ -1,13 +1,14 @@
 {
   "id": "budget-watch",
   "package": "dsh-budget-watch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "intent": "看会话的 token 预算：步数、累计消耗、每步均值、缓存命中率，超线时给交接建议。用来回答「这次会话为什么这么贵」「该不该切会话」",
   "inputs": ["stepsWarn", "stepsHard", "days", "limit"],
   "outputs": ["steps", "total", "input", "cache", "output", "perStep", "maxStep", "cacheRate", "level", "alerts"],
   "limits": [
     "纯只读：只解析 ~/.dsh/sessions 下的会话日志，不写任何文件、不联网、不起子进程",
     "不切会话、不重启、不禁用插件——这些是开关，必须由用户手动操作",
+    "步数阈值 200 提醒 / 250 硬线（2026-11-04 统一；config.json、lib/tools.js 兜底、独立脚本 budget-watch.mjs 三处一致）",
     "usage 字段只在 assistant/message 帧里，缺 usage 的帧跳过不记",
     "多帧 zstd 按魔数切帧逐帧解压，坏帧跳过（Node 流式解压会报 Unknown frame descriptor）",
     "只能看到本机已有会话日志；日志被归档/删除的会话看不到",
@@ -20,5 +21,5 @@
   ],
   "scope": ["owner", "private", "session"],
   "cost": { "cpu": "low", "network": "none", "tokens": "low" },
-  "changedAt": "2026-11-01T17:40:00+08:00"
+  "changedAt": "2026-11-04T00:06:00+08:00"
 }

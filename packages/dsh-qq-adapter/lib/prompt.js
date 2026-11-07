@@ -31,12 +31,20 @@ export function buildPrompt({ identity, event, channelLabel = 'QQ' }) {
 }
 
 export function cleanReply(text, maxChars = 120) {
-  let value = String(text || '')
-    .replace(/```[\s\S]*?```/g, ' ')
+  const value = String(text || '')
     .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-    .replace(/\s+/g, ' ')
     .trim()
   const limit = Math.max(20, Number(maxChars) || 120)
-  if (value.length > limit) value = value.slice(0, limit - 1) + '…'
-  return value
+  if (value.length <= limit) return value
+  // 2026-11-04 保真：超限按行截断，保留代码/表格/列表结构；单行超长才硬切。
+  const lines = value.split('\n')
+  const kept = []
+  let size = 0
+  for (const line of lines) {
+    if (size + line.length + 1 > limit) break
+    kept.push(line)
+    size += line.length + 1
+  }
+  if (kept.length) return kept.join('\n').trimEnd() + '\n…'
+  return value.slice(0, limit - 1) + '…'
 }

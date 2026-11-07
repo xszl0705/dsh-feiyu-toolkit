@@ -1,19 +1,44 @@
 {
   "name": "dsh-finance-learn",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "金融分析 + 经济与社会知识学习：腾讯行情/K线/指数、世界银行宏观，加概念卡与间隔重复（SM-2）。只做数据与教学，不提供投资建议。",
   "type": "module",
   "main": "index.js",
-  "files": ["index.js", "lib", "config.json", "capability.json", "cordis.patch.yml", "README.md"],
+  "files": [
+    "index.js",
+    "lib",
+    "config.json",
+    "capability.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
-  "keywords": ["dsh", "dsh-plugin", "finance", "stock", "economics", "spaced-repetition", "sqlite"],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "finance",
+    "stock",
+    "economics",
+    "spaced-repetition",
+    "sqlite"
+  ],
   "scripts": {
     "test": "node tests/run-all.mjs"
   },
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
 }

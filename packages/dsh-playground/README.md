@@ -16,6 +16,12 @@
 
 这个插件把三件事一起解决：跑在宿主进程里（不受沙箱限制）、封装正确的 CLI 调用、把流程做成工具。
 
+## 边界：只碰 verifyx（2026-11-04 方案 v3）
+
+- 本插件只负责「装进 verifyx 验证」；**不用于改 desktop 的 bundles**——desktop 的启用/禁用/安装走内置 `plugin_manager`。
+- 插件市场（内置 `plugin_market` / 第三方 `dshmarket`）只用于浏览；装完立刻跑 `dsh-snapshot-last-good.ps1`。
+- 四个入口并存时，以「谁改 desktop」为界：**只有 `plugin_manager` 能改**。
+
 ## 工具
 
 只有一个入口 `playground`，用 `action` 分发（旧名不再注册）。
@@ -77,5 +83,11 @@ node tests/playground.test.mjs
 
 ## 变更记录
 
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
+- 2026-11-03：实例 pid 落盘到 `~/.dsh/dafeiyu/playground.json`（宿主重启后 `status`/`stop` 仍能接管上次实例，超过 24h 视为过期）；`stopInstance` 杀完按 pid 复核，未退出时返回 `ok:false`，不再报「已停」。
+- 2026-11-04 · 进程与状态归一（阶段 2.4）：本地 `isAlive` 与 `portOpen` 改为 `dsh-plugin-kit/process`；`stopInstance` 仍然只杀记过的 pid，不按名字全杀。
 - 2026-11-01：启动实例的 stdout/stderr 从丢弃改为落盘 `<profileDir>/boot.log`（append、超 512KB 截断）。原因：stdio 'ignore' 下 verifyx 起不来时毫无线索，排查无从下手。
 - 2026-11-01：六个工具（`playground_status`/`playground_start`/`playground_stop`/`playground_check`/`playground_conflicts`/`playground_install`）合并为单个 `playground`（`action` 分发，参数与默认值不变），压工具定义 token；旧名不再注册。

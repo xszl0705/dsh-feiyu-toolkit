@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "maxTokens": 1000,
+  "installClientContext": true,
+  "vision": {
+    "apiKey": "",
+    "baseURL": "https://api.deepseek.com",
+    "model": "deepseek-flash",
+    "maxImageBytes": 8388608,
+    "timeoutMs": 30000,
+    "maxImages": 2,
+    "detail": "high"
+  }
+}

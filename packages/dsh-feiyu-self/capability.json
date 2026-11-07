@@ -2,22 +2,29 @@
   "id": "self",
   "package": "dsh-feiyu-self",
   "version": "0.1.0",
-  "intent": "回答我是谁、会什么、不会什么、最近改了什么；维护决策日志",
+  "intent": "回答我是谁、会什么、不会什么、最近改了什么；维护决策日志；跑自进化闭环（诊断 → 候选 → 人审 → 三重验证 → 灰度 → 回滚）",
   "inputs": [
     "query",
-    "decision-entry"
+    "decision-entry",
+    "diagnosis-source"
   ],
   "outputs": [
     "status",
     "capabilities",
     "limits",
     "history",
-    "check"
+    "check",
+    "evolve-change",
+    "variant-archive"
   ],
   "limits": [
     "不记录对话正文，只记决策与结果",
     "拿不到的数据一律标 unknown，不推测",
-    "不自动修改任何配置或代码",
+    "不自动改代码、不碰人设与权限；唯一可写的是 flags.json 的 enabled / variants，且必须走候选人审 + 三重验证 + 灰度 + 回滚",
+    "同一时间只允许 1 个可应用候选在途（单一候选制）；在途满时新候选降级为提醒",
+    "单次改动规模：补丁 ≤50 行、配置类 JSON ≤2000 字符",
+    "带 verification 记录的候选，三项验证（目标用例 / 同类迁移 / 全量回归）任一不过就拒绝 apply",
+    "变体档案只保留最近 10 个，可 diff、可回滚",
     "工具已合并为单入口 self(action)，旧名不再注册"
   ],
   "failureModes": [

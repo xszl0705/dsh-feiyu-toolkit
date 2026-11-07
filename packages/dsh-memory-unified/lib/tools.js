@@ -51,6 +51,11 @@ export function createMemoryTools({ store, config }) {
         keywords: { type: 'array', items: { type: 'string' }, description: '3~6 个检索关键词' },
         importance: { type: 'number', description: '0~1，默认 0.5；长期规则给 0.9' },
         category: { type: 'string', description: 'stable_profile / preference / decision / fact，默认 general' },
+        visibility: {
+          type: 'string',
+          enum: ['private', 'public'],
+          description: 'public=群聊/陌生人也允许用（只放关系、称呼、公开形象这类可对外讲的事）；默认 private',
+        },
       },
       required: ['text'],
     },
@@ -92,6 +97,7 @@ export function createMemoryTools({ store, config }) {
         keywords: Array.isArray(args?.keywords) ? args.keywords.map(String) : [],
         importance: args?.importance,
         category: String(args?.category || 'general'),
+        visibility: String(args?.visibility || 'private'),
         maxItems,
         dedupe: config.dedupe !== false,
       })
@@ -113,6 +119,11 @@ export function createMemoryTools({ store, config }) {
         query: { type: 'string', description: '要搜的内容，可以是整句' },
         limit: { type: 'number', description: '返回条数，默认 8' },
         folder: { type: 'string', description: '只搜这个主题（如「工作」「日常」），省略则全库' },
+        visibility: {
+          type: 'string',
+          enum: ['private', 'public'],
+          description: '只搜某一档：public=公开可讲的；省略则不筛',
+        },
       },
       required: ['query'],
     },
@@ -150,6 +161,7 @@ export function createMemoryTools({ store, config }) {
       const hits = store.search(query, {
         limit: Number(args?.limit) || 8,
         folder: String(args?.folder || '').trim(),
+        visibility: String(args?.visibility || '').trim(),
       })
       return { query, count: hits.length, hits }
     },

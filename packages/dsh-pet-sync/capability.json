@@ -13,7 +13,8 @@
   "limits": [
     "桌宠缺失时如实报告未运行，不伪造进程状态",
     "不改桌宠的行为规则",
-    "工具已合并为单入口 pet(action)，旧 pet_status/pet_start/pet_stop/pet_form/pet_say 不再注册"
+    "工具已合并为单入口 pet(action)，旧 pet_status/pet_start/pet_stop/pet_form/pet_say 不再注册",
+    "stop 会按 pid 复核：taskkill 后仍有存活进程时返回 ok:false，且不写 running:false"
   ],
   "failureModes": [
     {

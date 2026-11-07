@@ -1,20 +1,22 @@
 {
   "enabled": true,
-  "napcat": {
-    "enabled": true,
-    "root": "",
-    "launcher": "start-hidden.vbs",
-    "port": 3001,
-    "webuiPort": 6099,
-    "cooldownMs": 30000,
-    "slowCooldownMs": 600000,
-    "fastFailures": 8
+  "bridge": {
+    "host": "127.0.0.1",
+    "port": 3001
   },
   "mindLoop": {
-    "enabled": false,
+    "enabled": true,
     "script": "",
     "node": "",
     "pidFile": "",
+    "cooldownMs": 600000
+  },
+  "bsk": {
+    "enabled": true,
+    "bin": "",
+    "home": "",
+    "host": "127.0.0.1",
+    "port": 52800,
     "cooldownMs": 600000
   }
 }

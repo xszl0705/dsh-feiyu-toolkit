@@ -1,8 +1,8 @@
 {
   "id": "mood",
   "package": "dsh-feiyu-mood-lite",
-  "version": "0.4.0",
-  "intent": "评估心情值并给出表达强度，让语气随情绪变化",
+  "version": "0.4.1",
+  "intent": "评估心情值并对外供数（桌宠 / QQ 读取），不注入客户端对话",
   "inputs": [
     "conversation-summary",
     "events"
@@ -13,7 +13,8 @@
   ],
   "limits": [
     "只影响语气强弱，不改立场和原则",
-    "不编造心情变化原因"
+    "不编造心情变化原因",
+    "不向 DSH 客户端对话注入任何心情文本（仅 state.json / 端点 / 工具按需查询）"
   ],
   "failureModes": [
     {

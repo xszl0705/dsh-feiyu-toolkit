@@ -12,7 +12,7 @@ import zlib from 'node:zlib'
 import { judge } from '../lib/tools.js'
 import { readSession, summarizeFile } from '../lib/usage.js'
 
-const THRESHOLDS = { stepsWarn: 500, stepsHard: 800, tokensWarn: 200000000, perStepWarn: 400000, cacheRateWarn: 0.7 }
+const THRESHOLDS = { stepsWarn: 200, stepsHard: 250, tokensWarn: 200000000, perStepWarn: 400000, cacheRateWarn: 0.7 }
 
 function makeStat(over = {}) {
   return {
@@ -36,15 +36,15 @@ test('judge：健康会话不报警', () => {
 })
 
 test('judge：步数过软线 → warn', () => {
-  const v = judge(makeStat({ steps: 550 }), THRESHOLDS)
+  const v = judge(makeStat({ steps: 210 }), THRESHOLDS)
   assert.equal(v.level, 'warn')
-  assert.match(v.alerts.join(), /步数 550 ≥ 500/)
+  assert.match(v.alerts.join(), /步数 210 ≥ 200/)
 })
 
 test('judge：步数过硬线 → hard（优先于软线）', () => {
-  const v = judge(makeStat({ steps: 900 }), THRESHOLDS)
+  const v = judge(makeStat({ steps: 300 }), THRESHOLDS)
   assert.equal(v.level, 'hard')
-  assert.match(v.alerts.join(), /900 ≥ 800/)
+  assert.match(v.alerts.join(), /300 ≥ 250/)
 })
 
 test('judge：累计超 2 亿 → warn', () => {

@@ -1,4 +1,4 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 /**
  * dsh-pet-hub —— 把「心情挂件」「朗读桥卡片」「大肥鱼桌宠」合成一个浮层
  *
@@ -8,7 +8,9 @@ import { lifecycle } from './lib/lifecycle.js'
  *   - 心情：读 /dsh-feiyu-mood/state；朗读：读 /dsh-tts-bridge/state。
  */
 
+import crypto from 'node:crypto'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -18,7 +20,8 @@ import {
   startPet,
   stopPet,
   switchForm,
-} from './lib/pet.js'
+} from 'dsh-plugin-kit/pet'
+import { dshHome, readRecentWork } from './lib/body-memory.js'
 
 export const name = 'dsh-pet-hub'
 
@@ -119,8 +122,15 @@ function applyInner(ctx) {
         kind: 'exact',
         path: routePath,
         handler: async (req, res) => {
+          // 浏览器来的请求一律拒：本地脚本/桌宠不会带 Origin。
+          // 这样"随便一个网页发个 text/plain POST"就够不着 /pet 了（免预检 CSRF 的入口）。
+          // 注意：req.headers 可能不存在（测试桩 / 非常规调用），空值也要安全。
+          if (req.headers?.origin) {
+            reply(res, 403, { ok: false, error: '拒绝浏览器来源（带 Origin 的请求）' })
+            return
+          }
           if (req.method === 'OPTIONS') {
-            res.writeHead(204, { 'access-control-allow-origin': '*' })
+            res.writeHead(204)
             res.end()
             return
           }
@@ -133,11 +143,71 @@ function applyInner(ctx) {
       }),
     )
 
+  // ── 写操作的令牌（2026-11-01）：/pet 与 /line 必须带 x-pet-token ──
+  // 令牌落在 ~/.dsh/pet/hub-token，本地客户端读取后放进请求头。
+  const TOKEN_FILE = path.join(
+    dshHome(), 'pet', 'hub-token')
+  const ensureToken = () => {
+    try {
+      if (!fs.existsSync(TOKEN_FILE)) {
+        fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true })
+        fs.writeFileSync(TOKEN_FILE, crypto.randomBytes(24).toString('hex'), 'utf8')
+      }
+      return fs.readFileSync(TOKEN_FILE, 'utf8').trim()
+    } catch {
+      return ''
+    }
+  }
+  const guard = (req, res) => {    const token = ensureToken()
+    const got = String(req.headers['x-pet-token'] || '')
+    if (!token || got !== token) {
+      reply(res, 401, { ok: false, error: '需要 x-pet-token（令牌见 ~/.dsh/pet/hub-token）' })
+      return false
+    }
+    return true
+  }
+
+  // 桌宠在跑时，改配置走指令队列（config.json 只归桌宠写）
+  const pushPetCommand = (type, payload) => {
+    try {
+      const dir = path.dirname(TOKEN_FILE)
+      fs.mkdirSync(dir, { recursive: true })
+      const now = Date.now()
+      const item = {
+        id: 'c_' + Math.random().toString(16).slice(2, 14),
+        type,
+        from: 'pet-hub',
+        ts: now,
+        exp: now + 60000,
+        payload: payload || {},
+      }
+      const line = JSON.stringify(item)
+      if (Buffer.byteLength(line, 'utf8') > 8 * 1024) return null
+      fs.appendFileSync(path.join(dir, 'inbox.jsonl'), line + '\n', 'utf8')
+      return item.id
+    } catch {
+      return null
+    }
+  }
+
+  // /line 会真的花钱：限到 6 次/分钟，别让本机某个循环把额度刷掉
+  const lineWindow = { start: 0, count: 0 }
+  const lineAllowed = () => {
+    const now = Date.now()
+    if (now - lineWindow.start > 60000) {
+      lineWindow.start = now
+      lineWindow.count = 0
+    }
+    if (lineWindow.count >= 6) return false
+    lineWindow.count += 1
+    return true
+  }
+
   const status = async () => {
     const pet = await petStatus({ petDir, pythonw })
     let mood = null
     try {
-      const file = path.join(process.env.DSH_HOME || path.join(process.env.USERPROFILE || '', '.dsh'), 'feiyu-mood', 'state.json')
+      const file = path.join(dshHome(), 'feiyu-mood', 'state.json')
       const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
       const moods = raw && typeof raw === 'object' ? raw.moods : null
       const key = raw && typeof raw === 'object' ? raw.lastActive : null
@@ -155,17 +225,29 @@ function applyInner(ctx) {
   }
 
   // 桌宠那张卡片不联网也能拿到「直播」数据：这里每 3 秒写一份快照文件。
-  const homeDir = process.env.DSH_HOME || path.join(process.env.USERPROFILE || '', '.dsh')
+  const homeDir = dshHome()
   const snapshotFile = path.join(homeDir, 'pet-hub-status.json')
 
   const readMemory = () => {
+    // 真源是 memory-unified 的 SQLite 库（实测 25 主题 / 57 条）。
+    // index.json 是 2026-10-27 的旧 JSON 后端遗留（3 主题 / 15 条），只当兜底，
+    // 否则状态卡上的「记忆条数」会比实际低好几倍。
+    try {
+      const api = ctx.get?.('memory') || globalThis[Symbol.for('dsh-memory-unified.service')]
+      const stats = api && typeof api.stats === 'function' ? api.stats() : null
+      if (stats && Number.isFinite(Number(stats.items))) {
+        return { folders: Number(stats.folders) || 0, items: Number(stats.items) || 0, source: 'service' }
+      }
+    } catch {
+      // 服务没就绪：退回旧索引
+    }
     try {
       const raw = JSON.parse(fs.readFileSync(path.join(homeDir, 'dsh-memory-unified', 'index.json'), 'utf8'))
       const folders = Array.isArray(raw && raw.folders) ? raw.folders : []
       const items = folders.reduce((sum, f) => sum + (Number(f && f.count) || 0), 0)
-      return { folders: folders.length, items }
+      return { folders: folders.length, items, source: 'index.json' }
     } catch {
-      return { folders: 0, items: 0 }
+      return { folders: 0, items: 0, source: 'none' }
     }
   }
 
@@ -267,7 +349,7 @@ function applyInner(ctx) {
   const readPetTemplate = () => {
     try {
       const file = path.join(
-        process.env.DSH_HOME || path.join(process.env.USERPROFILE || process.env.HOME || '', '.dsh'),
+        dshHome(),
         'dafeiyu',
         'compiled',
         'pet.template.txt',
@@ -285,9 +367,22 @@ function applyInner(ctx) {
       return value === undefined || value === null || value === '' ? '' : String(value)
     })
 
+  // 本体记忆读取挪到 lib/body-memory.js（与 dsh-pet-diary 同规则副本，contracts.mjs 钉一致性）
+
+  const todayKey = () => {
+    const d = new Date()
+    const pad2 = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  }
+
   const buildPrompt = (moment, state) => {
     const mood = state && state.mood != null ? `此刻心情值 ${state.mood}` : ''
-    const memory = state && state.memory ? `记忆库里有 ${state.memory} 条` : ''
+    const work = readRecentWork(todayKey(), { maxChars: 50 })
+    const memory = work
+      ? `你最近在忙：${work}`
+      : state && state.memory
+        ? `记忆库里有 ${state.memory} 条`
+        : ''
     const away = state && state.awayMinutes ? `用户刚离开了约 ${state.awayMinutes} 分钟` : ''
     const scene = {
       return: '用户隔了很久刚回到电脑前',
@@ -305,7 +400,8 @@ function applyInner(ctx) {
       '你是一只名叫「大肥鱼」的桌面宠物：性格俏皮机灵、有点小得意也爱撒娇。',
       '规则：只说一句话；不超过 18 个字；口语短句；可以用「呀/嘛/啦/诶」；',
       '不要解释、不要排比、不要说教、不要用表情符号、不要加引号。',
-      `场景：${scene}。${away}。${mood}。${memory}。`,
+      `场景：${scene}。${away}。${mood}。`,
+      memory ? `${memory}（只当背景，别复述、别报进度）` : '',
       '直接输出这句话本身。',
     ].join('\n')
   }
@@ -313,7 +409,7 @@ function applyInner(ctx) {
   // 日常对话留痕：只写「真实说出口的那句」，供事后翻看；不进 DSH 会话、不进工作记录。
   const logChat = (moment, text, model) => {
     try {
-      const base = process.env.DSH_HOME || path.join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')
+      const base = dshHome()
       const dir = path.join(base, 'pet-diary', 'chats')
       fs.mkdirSync(dir, { recursive: true })
       const now = new Date()
@@ -333,6 +429,11 @@ function applyInner(ctx) {
   }
 
   route('/dsh-pet-hub/line', async (req, res) => {
+    if (!guard(req, res)) return
+    if (!lineAllowed()) {
+      reply(res, 429, { ok: false, error: '太频繁了（每分钟最多 6 次）' })
+      return
+    }
     const body = await readJson(req)
     const moment = String(body.moment || 'idle')
     const state = body.state || {}
@@ -344,7 +445,6 @@ function applyInner(ctx) {
     const prompt = buildPrompt(moment, state)
     const candidates = [
       { provider: 'deepseek-account', model: 'deepseek-flash' },
-      { provider: 'deepseek-account', model: 'deepseek-v4-flash' },
       { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
     ]
     let lastError = ''
@@ -352,7 +452,7 @@ function applyInner(ctx) {
       try {
         const stream = llm.stream({
           ...candidate,
-          maxTokens: 1024,
+          maxTokens: 300,
           messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
         })
         const result = await withTimeout(collectText(stream), 20000)
@@ -373,6 +473,7 @@ function applyInner(ctx) {
   route('/dsh-pet-hub/status', async (req, res) => reply(res, 200, await status()))
 
   route('/dsh-pet-hub/pet', async (req, res) => {
+    if (!guard(req, res)) return
     const body = await readJson(req)
     const action = String(body.action || '')
     if (action === 'start') {
@@ -386,6 +487,13 @@ function applyInner(ctx) {
     }
     if (action === 'form') {
       const form = body.form === 'widget' ? 'widget' : 'pet'
+      // 配置归桌宠写：它在跑就发指令，别直接改 config.json（会被 autosave 覆盖）
+      const st = await petStatus({ petDir, pythonw })
+      if (st.running) {
+        const id = pushPetCommand('set', { skin: form === 'widget' ? '小鲸鱼挂件' : '大肥鱼' })
+        reply(res, 200, id ? { ok: true, queued: id } : { ok: false, error: '指令队列写不进去' })
+        return
+      }
       reply(res, 200, await switchForm({ petDir, pythonw, form }))
       return
     }
@@ -410,7 +518,7 @@ function applyInner(ctx) {
   // 客户端一启动就让桌宠弹一次状态卡：写一个请求文件，桌宠那边每 1.5 秒轮询一次。
   const requestPetCard = () => {
     try {
-      const home = process.env.DSH_HOME || path.join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')
+      const home = dshHome()
       const file = path.join(home, 'pet-card-request.json')
       fs.mkdirSync(path.dirname(file), { recursive: true })
       fs.writeFileSync(file, JSON.stringify({ at: Date.now(), from: 'dsh-startup' }), 'utf8')

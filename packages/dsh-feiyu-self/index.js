@@ -8,16 +8,18 @@
  */
 
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { createDecisionLog, dayKey } from './lib/decisions.js'
 import { buildSnapshot, deriveLimits, diffSnapshot, snapshotHash, UNKNOWN } from './lib/self-model.js'
 import { adoptVerdict, buildBaseline, collectDay, compare } from './lib/metrics.js'
 import { createFlagStore, DEFAULT_FLAGS } from './lib/variants.js'
-import { createPipeline, diagnose } from './lib/pipeline.js'
+import { createPipeline, diagnose, diagnoseFromSources } from './lib/pipeline.js'
 import { createProcedureStore } from './lib/procedures.js'
+import { atomicWrite } from 'dsh-plugin-kit/atomic-write'
 
 export const name = 'dsh-feiyu-self'
 
@@ -62,17 +64,12 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响主流程
-  }
+  kitNote(HERE, message)
 }
 
 function safeWrite(file, content) {
   try {
-    fs.mkdirSync(path.dirname(file), { recursive: true })
-    fs.writeFileSync(file, content, 'utf8')
+    atomicWrite(file, content)
     return true
   } catch {
     return false
@@ -460,13 +457,49 @@ function createApi(st, ctx, config) {
     }
   }
 
+  /**
+   * 1.5.1 收集诊断源：各插件 load.log 的最后 200 行 + 未进 verify 清单的插件。
+   * 只读、失败静默——诊断源收集不能拖垮 evolve。
+   */
+  function collectDiagnosisSources() {
+    const pluginsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+    const loadLogs = {}
+    let uncoveredPlugins = []
+    try {
+      const pkgs = fs
+        .readdirSync(pluginsDir, { withFileTypes: true })
+        .filter((row) => row.isDirectory() && /^dsh-/.test(row.name))
+        .map((row) => row.name)
+      for (const name of pkgs) {
+        const file = path.join(pluginsDir, name, 'load.log')
+        if (!fs.existsSync(file)) continue
+        const text = fs.readFileSync(file, 'utf8')
+        loadLogs[name] = text.split('\n').slice(-200).join('\n')
+      }
+      const verifyFile = path.join(pluginsDir, 'tests', 'verify.mjs')
+      if (fs.existsSync(verifyFile)) {
+        const manifest = fs.readFileSync(verifyFile, 'utf8')
+        uncoveredPlugins = pkgs.filter((name) => !manifest.includes(name))
+      }
+    } catch {
+      // 收集失败就只报原有诊断
+    }
+    return { loadLogs, uncoveredPlugins }
+  }
+
   function evolve({ action = 'list', id = '' } = {}) {
     st.pipeline ||= createPipeline({ dir: path.join(DSH_HOME, 'dafeiyu', 'evolve'), flagsFile: FLAGS_FILE })
     const pipeline = st.pipeline
     const now = new Date()
     const currentDiagnoses = () => {
       const result = metrics({ days: 7 })
-      return diagnose({ today: result.today, comparison: result.comparison })
+      const base = diagnose({ today: result.today, comparison: result.comparison })
+      // 1.5.1：再接三路诊断源——各插件 load.log 的错误模式、未进 verify 清单的插件
+      try {
+        return [...base, ...diagnoseFromSources(collectDiagnosisSources())]
+      } catch {
+        return base
+      }
     }
     try {
       if (action === 'propose') {

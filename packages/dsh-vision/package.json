@@ -1,16 +1,38 @@
 {
   "name": "dsh-vision",
-  "version": "0.1.0",
-  "description": "看图：把图片转成文字描述，供模型在拿不到原生视觉时使用；远程图只取公网地址。",
+  "version": "0.1.1",
+  "description": "看图：把图片转成文字描述，供模型在拿不到原生视觉时使用；远程图只取公网地址。自带 vision_describe 工具（原在 dsh-qq-adapter）。",
   "type": "module",
   "main": "index.js",
-  "files": ["index.js", "lib", "config.json", "capability.json", "cordis.patch.yml", "README.md"],
+  "files": [
+    "index.js",
+    "lib",
+    "config.json",
+    "capability.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
-  "keywords": ["dsh", "dsh-plugin", "vision", "image"],
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "vision",
+    "image"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
 }

@@ -1,5 +1,5 @@
 /**
- * OneBot 11 事件解析（NapCat 上报格式）。
+ * OneBot 11 事件解析（SnowLuma / NapCat 上报格式）。
  * 只关心：有人跟我说了一句话，要不要回。
  */
 

@@ -26,3 +26,7 @@ Thumbs.db
 
 # 测试临时目录（含运行期生成的对话记录）
 **/.tmp*/
+
+# 本地产物与备份（2026-11-07 发布前补充）
+packages/dsh-local-triage/reports/
+*.bak-*

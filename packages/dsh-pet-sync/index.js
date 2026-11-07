@@ -1,4 +1,5 @@
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 /**
  * dsh-pet-sync — 桌宠/悬浮窗统一整合 + 与本程序同步开关
  *
@@ -11,6 +12,7 @@ import { lifecycle } from './lib/lifecycle.js'
  */
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -23,7 +25,7 @@ import {
   stopPet,
   switchForm,
   writeState,
-} from './lib/pet.js'
+} from 'dsh-plugin-kit/pet'
 
 export const name = 'dsh-pet-sync'
 
@@ -74,10 +76,44 @@ function safeLog(ctx, level, message) {
 }
 
 function note(message) {
+  kitNote(HERE, message)
+}
+
+// ── 与桌宠的契约（2026-11-01 P1）──
+// 状态：~/.dsh/pet/state.json —— **只有桌宠进程写**，这里只读。
+// 指令：~/.dsh/pet/inbox.jsonl —— 插件只追加，桌宠按偏移读、执行、回执。
+// 规矩：插件不再直接改 config.json（以前和桌宠的 autosave 互相覆盖）。
+const PET_HOME = () => path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'pet')
+
+function readPetState() {
   try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
+    const data = JSON.parse(fs.readFileSync(path.join(PET_HOME(), 'state.json'), 'utf8'))
+    const age = Date.now() - Number(data.updatedAt || 0)
+    return { ...data, stale: !(age >= 0 && age < 10000) }
   } catch {
-    // 日志写不了也不能影响加载
+    return null
+  }
+}
+
+function pushPetCommand(type, payload, ttlSec = 120, source = 'pet-sync') {
+  try {
+    const dir = PET_HOME()
+    fs.mkdirSync(dir, { recursive: true })
+    const now = Date.now()
+    const item = {
+      id: 'c_' + Math.random().toString(16).slice(2, 14),
+      type,
+      from: source,
+      ts: now,
+      exp: now + ttlSec * 1000,
+      payload: payload || {},
+    }
+    const line = JSON.stringify(item)
+    if (Buffer.byteLength(line, 'utf8') > 8 * 1024) return null
+    fs.appendFileSync(path.join(dir, 'inbox.jsonl'), line + '\n', 'utf8')
+    return item.id
+  } catch {
+    return null
   }
 }
 
@@ -200,10 +236,18 @@ function applyInner(ctx) {
         const action = String(args?.action || 'status')
         if (action === 'status') {
           const v = await petStatus({ petDir, pythonw })
+          const live = readPetState()
+          // 2026-11-04：状态以进程探测为准；pet-sync.json 与探测不一致时修正，
+          // 避免「状态文件说在跑、进程不在」的三源不一致。
+          const snapshot = readState()
+          if (Boolean(snapshot.running) !== v.running || Number(snapshot.pid || 0) !== Number(v.pid || 0)) {
+            writeState({ running: v.running, pid: v.pid ?? null })
+            note(`状态修正：pet-sync.json running=${Boolean(snapshot.running)} → ${v.running}，pid=${snapshot.pid ?? 'null'} → ${v.pid ?? 'null'}`)
+          }
           const text = v.running
             ? `桌宠在跑（pid ${v.pid}）· 形态 ${v.form}（${v.skin}）· 尺寸 ${v.size} · 模式 ${v.mode}${v.topmost ? ' · 置顶' : ''}`
             : `桌宠没在跑 · 配置目录 ${v.petDir}${v.configFound ? '' : '（config.json 缺失）'}`
-          return { ...v, action, text }
+          return { ...v, action, state: live, text }
         }
         if (action === 'start') {
           const result = await ensureUp(args?.form)
@@ -213,11 +257,18 @@ function applyInner(ctx) {
         if (action === 'stop') {
           const status = await petStatus({ petDir, pythonw })
           const result = await stopPet(status.pids)
+          if (!result.ok) return { ...result, action, text: `停止失败：${result.error}` }
           writeState({ running: false, pid: null })
           return { ...result, action, text: `已停止 ${result.stopped?.length ?? 0} 个桌宠进程` }
         }
         if (action === 'form') {
           const form = args?.form === 'widget' ? 'widget' : 'pet'
+          // 配置归桌宠写：这里只发指令，不再直接改 config.json
+          const id = pushPetCommand('set', { skin: form === 'widget' ? '小鲸鱼挂件' : '大肥鱼' }, 60, 'pet-sync')
+          if (id && (await petStatus({ petDir, pythonw })).running) {
+            return { ok: true, action, form, queued: id, text: `已请桌宠切到 ${form} 形态（指令 ${id}）` }
+          }
+          if (!id) return { ok: false, action, form, error: '指令没写进队列' }
           const result = await switchForm({ petDir, pythonw, form })
           if (result.ok) writeState({ form, pid: result.pid, running: true })
           return { ...result, action, form, text: result.ok ? `已切到 ${form} 形态（pid ${result.pid}）` : `切换失败：${result.error}` }
@@ -225,13 +276,13 @@ function applyInner(ctx) {
         if (action === 'say') {
           const text = String(args?.text || '').trim().slice(0, 60)
           if (!text) return { ok: false, action, error: 'text 为空' }
-          try {
-            fs.mkdirSync(petDir, { recursive: true })
-            fs.appendFileSync(path.join(petDir, 'pet-say.jsonl'), JSON.stringify({ at: new Date().toISOString(), text }) + '\n', 'utf8')
-            return { ok: true, action, text: `桌宠会说：${text}` }
-          } catch (error) {
-            return { ok: false, action, error: String((error && error.message) || error) }
+          const status = await petStatus({ petDir, pythonw })
+          if (!status.running) {
+            return { ok: false, action, running: false, error: '桌宠没在跑，这句没送出去' }
           }
+          const id = pushPetCommand('say', { text }, 120, 'pet-sync')
+          if (!id) return { ok: false, action, error: '指令队列写不进去' }
+          return { ok: true, action, id, text: `已排队，桌宠会说：${text}` }
         }
         return { ok: false, action, error: '未知 action：' + action }
       },

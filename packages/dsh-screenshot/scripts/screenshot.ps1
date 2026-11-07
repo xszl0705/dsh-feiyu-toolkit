@@ -113,7 +113,7 @@ $cb = [WinPet+EnumProc]{
 try {
   # 默认把桌宠留在画面里（截图就是屏幕原样）；
   # 需要一张"没有桌宠"的干净截图时，才用 -HidePet 让桌宠自己躲开。
-  $pause = (Join-Path $env:TEMP 'dsh-screenshot-pause')
+  $pause = Join-Path $env:TEMP 'dsh-screenshot-pause'
   if ($HidePet) {
     Set-Content -Path $pause -Value (Get-Date).ToString('o') -Encoding UTF8
     Start-Sleep -Milliseconds 450

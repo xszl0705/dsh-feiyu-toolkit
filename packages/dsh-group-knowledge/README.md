@@ -61,3 +61,9 @@ node tests/service.test.mjs
 - 别指望它跨群——同一个词在 A 群和 B 群是两份数据
 - 别往里塞私有内容，它只收群聊公开信息
 - 链接抓取失败（内网地址、超大响应）是设计如此，不是 bug
+
+## 变更记录
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。

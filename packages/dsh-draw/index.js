@@ -10,10 +10,11 @@
  * 依赖不接受 pip 安装，以 wheel 解压目录固化在 pylibs/，运行时注入 PYTHONPATH。
  */
 import fs from 'node:fs'
+import { note as kitNote } from 'dsh-plugin-kit/note'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lifecycle } from './lib/lifecycle.js'
+import { lifecycle } from 'dsh-plugin-kit/lifecycle'
 import { createTools } from './lib/tools.js'
 import { findPython } from './lib/bridge.js'
 
@@ -38,11 +39,7 @@ function loadConfig() {
 }
 
 function note(message) {
-  try {
-    fs.appendFileSync(path.join(HERE, 'load.log'), new Date().toISOString() + '  ' + message + '\n', 'utf8')
-  } catch {
-    // 日志写不了不影响功能
-  }
+  kitNote(HERE, message)
 }
 
 function safeLog(ctx, level, message) {

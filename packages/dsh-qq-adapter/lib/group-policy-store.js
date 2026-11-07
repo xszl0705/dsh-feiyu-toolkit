@@ -5,6 +5,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { atomicWriteJson } from 'dsh-plugin-kit/atomic-write'
 
 const BASE = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 const DIR = path.join(BASE, 'dafeiyu', 'group-policy')
@@ -24,8 +25,7 @@ export function loadPolicyState(groupId, createState) {
 
 export function savePolicyState(groupId, state) {
   try {
-    fs.mkdirSync(DIR, { recursive: true })
-    fs.writeFileSync(fileOf(groupId), JSON.stringify(state, null, 2), 'utf8')
+    atomicWriteJson(fileOf(groupId), state)
   } catch {
     // 策略状态写失败不影响主流程
   }

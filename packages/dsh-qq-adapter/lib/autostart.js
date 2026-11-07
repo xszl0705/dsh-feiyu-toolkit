@@ -1,68 +1,63 @@
 /**
- * 客户端启动时的服务自愈：QQ（NapCat）没连上就静默拉起，微心跳没在跑也静默拉起。
+ * 客户端启动时的服务自愈：微心跳没在跑就静默拉起；探测 QQ 桥（SnowLuma）是否在线；
+ * bsk daemon（BrowserSkill 的浏览器自动化后端）没在跑就拉起一个 foreground 实例。
  *
  * 为什么放在插件里而不是外部 watchdog：
  * 外部 watchdog 若由 DSH 工具启动，会继承 agent 的沙箱，spawn 子进程直接 EPERM
- * （实测 NapCat 报 `spawn EPERM`）。插件跑在宿主进程里，没有这层限制。
+ * （NapCat 时代实测过 `spawn EPERM`）。插件跑在宿主进程里，没有这层限制。
  *
- * 所有拉起都用 detached + windowsHide + stdio:ignore，不弹任何窗口。
+ * 所有拉起都用 windowsHide + stdio:ignore，不弹任何窗口。
+ *
+ * 2026-11-02：NapCat 已废弃（QQ 桥改用 SnowLuma，占 3001/5099）。本模块不再拉起 QQ 桥，
+ * 只探测端口状态（probeBridge）；拉起能力只剩微心跳（mind-loop）。
+ *
+ * 2026-11-05：新增 bsk daemon 自愈。BrowserSkill 的 daemon 必须挂在持久宿主进程上
+ * （`--foreground`），因为它走 detached 会被 Windows Job Object 拒绝；插件进程正好是持久宿主，
+ * 所以这里用「不 detached、不 unref」的方式拉起，随宿主生命周期存活。
  */
 
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
-import net from 'node:net'
+import { isAlive as kitIsAlive, portOpen as kitPortOpen } from 'dsh-plugin-kit/process'
+import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// 默认值按插件自身位置与当前运行时推导，换台机器不用改：
+// mind-loop 与本插件同在 dsh-plugins/ 下；node 用当前宿主可执行文件（拉起时补 ELECTRON_RUN_AS_NODE）。
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 
 const DEFAULTS = {
   enabled: true,
-  napcat: {
-    enabled: true,
-    root: '',
-    launcher: 'start-hidden.vbs',
+  bridge: {
+    host: '127.0.0.1',
     port: 3001,
-    webuiPort: 6099,
-    cooldownMs: 30000,
-    slowCooldownMs: 10 * 60 * 1000,
-    fastFailures: 8,
   },
   mindLoop: {
-    // 默认关：mind-loop 是可选配套件，没有它就不该开。
-    // 想用就配 script（和可选的 node / pidFile），再把 enabled 打开。
-    // script 为空时 checkMindLoop 会返回 missing-script，不会崩。
-    enabled: false,
-    script: '',
-    node: '',
-    pidFile: '',
+    enabled: true,
+    script: path.resolve(HERE, '../../mind-loop/mind-loop.mjs'),
+    node: process.execPath,
+    pidFile: path.join(DSH_HOME, 'dafeiyu', 'mind-loop.pid'),
+    cooldownMs: 10 * 60 * 1000,
+  },
+  bsk: {
+    enabled: true,
+    bin: '',
+    home: path.join(HERE, '..', '..', '_thirdparty', 'bsk-home'),
+    host: '127.0.0.1',
+    port: 52800,
     cooldownMs: 10 * 60 * 1000,
   },
 }
 
-/** 只测「端口有没有人听」，不发任何协议数据。 */
+/** 只测「端口有没有人听」，不发任何协议数据（实现统一在 kit/process）。 */
 export function portOpen(port, { host = '127.0.0.1', timeoutMs = 900 } = {}) {
-  return new Promise((resolve) => {
-    let settled = false
-    const socket = net.connect({ host, port })
-    const done = (value) => {
-      if (settled) return
-      settled = true
-      socket.destroy()
-      resolve(value)
-    }
-    socket.setTimeout(timeoutMs)
-    socket.once('connect', () => done(true))
-    socket.once('timeout', () => done(false))
-    socket.once('error', () => done(false))
-  })
+  return kitPortOpen(port, { host, timeoutMs })
 }
 
 export function pidAlive(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return error?.code === 'EPERM'
-  }
+  return kitIsAlive(pid)
 }
 
 export function readPid(file) {
@@ -86,6 +81,21 @@ export function launchHidden(file, args, options = {}) {
   return child
 }
 
+/**
+ * 挂在本进程上的子进程：不 detached、不 unref。
+ * bsk daemon 的 `--foreground` 只能这样起——detached 会被 Windows Job Object 判定为
+ * 「仍在 Job 内」，随后失败；真正要求的是「有一个比客户端活得久、且不短命的主人」。
+ */
+export function launchOwned(file, args, options = {}) {
+  const child = spawn(file, args, {
+    stdio: 'ignore',
+    windowsHide: true,
+    ...options,
+  })
+  child.on('error', () => {})
+  return child
+}
+
 function merge(base, override) {
   const out = { ...base }
   for (const [key, value] of Object.entries(override || {})) {
@@ -94,80 +104,16 @@ function merge(base, override) {
   return out
 }
 
-/** 记一条自愈决策到 self 日志；self 不在就跳过。 */
-function logDecision(entry) {
-  try {
-    const self = globalThis[Symbol.for('dsh-feiyu-self.service')]
-    self?.record?.({ channel: 'qq', kind: 'autostart', ...entry })
-  } catch {
-    // 日志不可用不影响自愈
-  }
-}
-
-export async function ensureNapCat({ config = {}, state = {}, note = () => {}, probe = portOpen, launch = launchHidden } = {}) {
+/**
+ * 探测 QQ 桥（SnowLuma 默认监听 3001）是否在线。只报状态，不拉起。
+ * 桥的生命周期由用户 / SnowLuma 自己维护；这里只负责让「桥在不在」可查。
+ */
+export async function probeBridge({ config = {}, probe = portOpen } = {}) {
   const merged = merge(DEFAULTS, config.autostart || {})
-  const cfg = merged.napcat
   if (!merged.enabled) return { action: 'disabled' }
-
-  // WebUI 还活着说明 NapCat 正在启动/登录中，别再拉第二个。
-  if (await probe(cfg.port)) {
-    state.napcatFailures = 0
-    return { action: 'up' }
-  }
-  if (await probe(cfg.webuiPort)) {
-    state.napcatFailures = 0
-    return { action: 'starting' }
-  }
-
-  const failures = Number(state.napcatFailures) || 0
-  const cooldown = failures >= cfg.fastFailures ? cfg.slowCooldownMs : cfg.cooldownMs
-  if (Date.now() - (Number(state.napcatTriedAt) || 0) < cooldown) return { action: 'cooldown' }
-
-  // 优先用 NapCat 自带的 node 直启：链路最短，输出能落到日志，失败才有据可查。
-  // 只有找不到 node/index.js 时才退回 wscript（那条链路的重定向曾经静默失败过）。
-  const nodeExe = path.join(cfg.root, 'node.exe')
-  const entry = path.join(cfg.root, 'index.js')
-  const launcher = path.join(cfg.root, cfg.launcher)
-  const useNode = fs.existsSync(nodeExe) && fs.existsSync(entry)
-  if (!useNode && !fs.existsSync(launcher)) {
-    state.napcatFailures = failures + 1
-    return { action: 'missing-launcher', launcher }
-  }
-
-  state.napcatTriedAt = Date.now()
-  state.napcatFailures = failures + 1
-  const target = useNode
-    ? { file: nodeExe, args: [entry] }
-    : { file: path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'wscript.exe'), args: [launcher] }
-
-  const logFile = path.join(cfg.root, 'napcat-autostart.log')
-  let fd
-  try {
-    fd = fs.openSync(logFile, 'a')
-    fs.writeSync(fd, `\n=== autostart ${new Date().toISOString()} attempt=${state.napcatFailures} mode=${useNode ? 'node' : 'wscript'} ===\n`)
-  } catch {
-    fd = undefined
-  }
-  try {
-    const options = { cwd: cfg.root }
-    if (fd !== undefined) options.stdio = ['ignore', fd, fd]
-    launch(target.file, target.args, options)
-    note(`QQ 未连接，已静默拉起 NapCat（第 ${state.napcatFailures} 次，${useNode ? 'node 直启' : 'wscript'}）`)
-    logDecision({ choice: 'launched', reason: `attempt=${state.napcatFailures} mode=${useNode ? 'node' : 'wscript'}` })
-    return { action: 'launched', attempts: state.napcatFailures, mode: useNode ? 'node' : 'wscript' }
-  } catch (error) {
-    note('拉起 NapCat 失败：' + String(error?.message || error))
-    logDecision({ choice: 'failed', reason: String(error?.message || error).slice(0, 120) })
-    return { action: 'error', error: String(error?.message || error) }
-  } finally {
-    if (fd !== undefined) {
-      try {
-        fs.closeSync(fd)
-      } catch {
-        // 子进程已继承句柄
-      }
-    }
-  }
+  const bridge = merged.bridge
+  const up = await probe(bridge.port, { host: bridge.host })
+  return up ? { action: 'up', port: bridge.port } : { action: 'down', port: bridge.port }
 }
 
 export async function ensureMindLoop({ config = {}, state = {}, note = () => {}, launch = launchHidden, exists = fs.existsSync } = {}) {
@@ -192,8 +138,46 @@ export async function ensureMindLoop({ config = {}, state = {}, note = () => {},
   }
 }
 
-export async function ensureServices({ config = {}, state = {}, note = () => {}, probe, launch } = {}) {
-  const napcat = await ensureNapCat({ config, state, note, probe, launch })
+/**
+ * bsk daemon（BrowserSkill）自愈：端口在听就报 running，否则拉一个 foreground 实例。
+ * 端口默认 52800；BSK_HOME 必须和 daemon 一致，否则客户端与 daemon 各找各的家。
+ */
+export async function ensureBskDaemon({
+  config = {},
+  state = {},
+  note = () => {},
+  probe = portOpen,
+  launch = launchOwned,
+  exists = fs.existsSync,
+} = {}) {
+  const cfg = merge(DEFAULTS, config.autostart || {}).bsk
+  if (!cfg.enabled) return { action: 'disabled' }
+  if (!cfg.bin) return { action: 'missing-binary', bin: '' }
+
+  const up = await probe(cfg.port, { host: cfg.host })
+  if (up) return { action: 'running', port: cfg.port }
+
+  if (Date.now() - (Number(state.bskTriedAt) || 0) < cfg.cooldownMs) return { action: 'cooldown' }
+  if (!exists(cfg.bin)) return { action: 'missing-binary', bin: cfg.bin }
+
+  state.bskTriedAt = Date.now()
+  try {
+    launch(cfg.bin, ['daemon', 'start', '--foreground'], {
+      cwd: cfg.home,
+      env: { ...process.env, BSK_HOME: cfg.home },
+    })
+    note('bsk daemon 没在跑，已拉起（foreground）')
+    return { action: 'launched', port: cfg.port }
+  } catch (error) {
+    note('拉起 bsk daemon 失败：' + String(error?.message || error))
+    return { action: 'error', error: String(error?.message || error) }
+  }
+}
+
+/** 启动时统一检查：探测 QQ 桥 + 拉起微心跳 + 拉起 bsk daemon。只有后两者会被拉起。 */
+export async function ensureServices({ config = {}, state = {}, note = () => {}, probe, launch, launchBsk = launchOwned } = {}) {
+  const bridge = await probeBridge({ config, probe })
   const mindLoop = await ensureMindLoop({ config, state, note, launch })
-  return { napcat, mindLoop }
+  const bsk = await ensureBskDaemon({ config, state, note, probe, launch: launchBsk })
+  return { bridge, mindLoop, bsk }
 }

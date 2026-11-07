@@ -8,9 +8,13 @@
 |---|---|
 | 每轮评价 | 一轮对话完成后，先让模型按 OCC 评价四件事（有利程度/意外程度/归因/可控性），再由本地规则算 `delta` |
 | 自然回落 | 每小时向基线（默认 60）回落 12%，没人说话也会慢慢回平 |
-| 注入语气 | 把当前心情作为一段 `systemPrompt`（order 65）注入，让回复语气受情绪影响 |
-| 可查询 | 工具 `feiyu_mood_status` + 端点 `GET /dsh-feiyu-mood/state` |
+| 对外供数 | 写 `~/.dsh/feiyu-mood/state.json` 并暴露 `GET /dsh-feiyu-mood/state`，供桌宠与 QQ 读取 |
+| 可查询 | 工具 `feiyu_mood_status`（模型按需调用，不是每轮注入） |
 | 降级 | 模型不可用/输出不是 JSON 时退回关键词启发式，心情仍然会动 |
+
+> **边界（2026-11-01 用户裁定）**：心情**只对接桌宠与 QQ**，不注入 DSH 客户端对话。
+> 早期版本把动态心情挂进 `systemPrompt.section(order 65)`，心情一变就触发宿主 in-history 整份系统提示副本
+> （实测 11 份 × 9.4KB ≈ 104KB/会话），已移除，见下方变更记录。
 
 ## 评价变量 → delta（v0.2）
 
@@ -65,7 +69,6 @@ delta    = round(sign(d) × |d| × 10 × novelty × bias)   // 再夹到 ±8
 | `provider` / `model` | deepseek-account / deepseek-flash | 判断用的模型 |
 | `maxTokens` | 1024 | **不要调到 100 以下**：思考过程会吃光预算，导致只回思考没有正文 |
 | `minIntervalMs` | 15000 | 两次判断的最小间隔 |
-| `injectPrompt` | true | 是否把心情注入系统提示词 |
 | `baseline` | 60 | 回落基线 |
 | `decayPerHour` | 0.12 | 主值的每小时回落率 |
 | `negativeFactor` | 0.7 | 心情低于基线时回落率的乘数（更黏） |
@@ -137,7 +140,7 @@ curl http://127.0.0.1:<port>/dsh-feiyu-mood/state
 node _test/run.mjs
 ```
 
-覆盖：心情数学（夹取/回落/差异化衰减/配置覆盖）、评价变量映射、JSON 解析与启发式、轮次扫描（含注入消息过滤）、mock ctx 下的整链（端点/工具/提示词/一轮 +6）。
+覆盖：心情数学（夹取/回落/差异化衰减/配置覆盖）、评价变量映射、JSON 解析与启发式、轮次扫描（含注入消息过滤）、mock ctx 下的整链（端点 / 工具 / **断言零系统提示注入** / 一轮 +6）。
 
 ## 卸载 / 回滚
 
@@ -171,3 +174,11 @@ node _test/run.mjs
 - 心情只调节语气强弱，**不改立场和判断**——别拿它当借口改变结论
 - 别手动改 `state.json` 里的数值，那是从对话里评估出来的
 - 心情低不代表要安慰，也不代表要改口
+
+## 变更记录
+
+
+
+- 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
+- 0.4.1（2026-11-01）：**移除系统提示注入**。心情不再进入客户端对话，只对桌宠与 QQ 供数。原因：动态心情挂在 `systemPrompt.section(order 65)`，心情每变一次就触发宿主 in-history 整份系统提示副本（实测 11 份 × 9.4KB ≈ 104KB/会话，占 200k 窗口 17.5%）。删除 `injectPrompt` 配置项与 `promptText()`；测试改为断言零注入。

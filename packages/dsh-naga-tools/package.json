@@ -1,6 +1,6 @@
 {
   "name": "dsh-naga-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "参照 NagaAgent 的 agent-manifest 契约，把 app_launcher / weather_time / system_control 三类能力做成 DSH 原生工具（纯 Node，无 Python、无 MCP 子进程）。",
   "type": "module",
   "main": "index.js",
@@ -15,9 +15,24 @@
       "patch": "./cordis.patch.yml"
     }
   },
-  "keywords": ["dsh", "dsh-plugin", "nagaagent", "app-launcher", "weather", "system-control"],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "nagaagent",
+    "app-launcher",
+    "weather",
+    "system-control"
+  ],
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "peerDependencies": {
+    "dsh-plugin-kit": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-plugin-kit": {
+      "optional": true
+    }
+  }
 }

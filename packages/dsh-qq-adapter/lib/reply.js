@@ -4,7 +4,8 @@
  */
 
 import { cleanReply } from './prompt.js'
-import { askVision } from './vision.js'
+import { detectActivity } from 'dsh-plugin-kit/interaction-plan'
+import { askVision, askVisionBytes } from './vision.js'
 import { collectStream } from './collect-stream.js'
 
 const COMPLEX_HINT = /(为什么|怎么|如何|分析|比较|区别|原理|代码|报错|debug|优化|方案|该不该|是不是|能不能|推荐|解释|帮我|设计|规划|计算|翻译|总结|评价)/i
@@ -24,21 +25,20 @@ export function isComplex(text) {
   return false
 }
 
+/**
+ * 协议级清洗：只处理明确的 meta 块标记（如「（自我提醒：…）」整行、`[meta]` 行）；
+ * 没有标记时正文原样返回。
+ * 2026-11-04 起不再按「手滑 / 别瞎编 / 记不清」这类普通词删整句——
+ * 它们可能是合法引文、纠错内容或用户明确要求保留的原文。
+ */
 export function stripMeta(text) {
   const original = String(text || '').trim()
   const hadEnd = /[。！？…]$/.test(original)
   let out = original
-    .replace(/[，,；;]?\s*(别让我瞎编|别瞎编|不要瞎编|我不能瞎编|我不能编|我得小心点|不能乱说)[，,；;。！？…]*/g, '')
-    .replace(/“”|""|''/g, '')
-    .replace(/[，,；;]\s*$/, '')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/^[ \t]*[（(\[［]\s*(?:自我提醒|内部备注|系统备注|meta)\s*[：:][^\n]*[)）\]］][ \t]*$/gim, '')
+    .replace(/^[ \t]*\[(?:meta|内部)\][^\n]*$/gim, '')
     .trim()
-  // 不要把“自我提醒/手滑/上一条”这类调试口吻说给用户
-  const META = /(自我提醒|手滑|漏出来|不夹思考|那句\s*[“”"]{0,2})/
-  const sentences = out.split(/(?<=[。！？!?…])/)
-  const kept = sentences.filter((sentence) => !META.test(sentence))
-  if (kept.length) out = kept.join('').trim()
-  else out = '嗯。'
+  if (!out) return ''
   out = out.replace(/[，,；;]\s*$/, '').trim()
   return hadEnd && out && !/[。！？…]$/.test(out) ? out + '。' : out
 }
@@ -72,11 +72,13 @@ export function planReplyPrompt({
   event,
   history = [],
   memory = [],
+  memoryScope = '',
   recent = [],
   groupRecent = [],
   knowledge = [],
   budgetChars = 6000,
   contextPlan = null,
+  activity = 'chat',
 }) {
   const planBlocks = contextPlan?.blocks || null
   const blockLimit = (key) => (planBlocks && Number(planBlocks[key]) > 0 ? Number(planBlocks[key]) : 0)
@@ -84,10 +86,22 @@ export function planReplyPrompt({
   const limit = Number(budgetChars) || planTotal || 0
   const who = event.kind === 'group' ? `QQ 群里 ${event.senderName} @ 你说` : `${event.senderName} 私聊你说`
   const imageCount = Array.isArray(event.images) ? event.images.length : 0
+  // 2026-11-04 阶段 4.2：活动提示放动态段（稳定段保持缓存友好），只有非闲聊才加。
+  const ACTIVITY_LABEL = { work: '工作', explain: '解释', support: '支持' }
+  const ACTIVITY_RULE = {
+    work: '直接给结果，必要时说明产出与未完成部分；用户没问过程就不铺陈。',
+    explain: '给足因果与例子，长度由问题决定，允许用列表/代码。',
+    support: '先接住对方表达，再判断是否需要帮助；不强行安排任务。',
+  }
+  const activityHint = activity !== 'chat'
+    ? `\n【当前活动：${ACTIVITY_LABEL[activity] || activity}】${ACTIVITY_RULE[activity] || ''}\n`
+    : ''
   const blocks = {
+    activity: activityHint,
     image: imageCount > 0
       ? `\n【图片】对方发来 ${imageCount} 张图片；先逐字读出图中文字/数字，再说关键细节和结论，不要只回“看到了”，不要猜图外信息。\n`
       : '',
+    sticker: event.stickerNote ? `\n【图片库】${String(event.stickerNote).slice(0, 200)}\n` : '',
     group: groupRecent.length
       ? `\n【最近群聊（只作语境，不要逐条复述）】\n${groupRecent.slice(-20).map((m) => `- ${m.speaker || '某人'}：${String(m.text || '').slice(0, 120)}`).join('\n')}\n`
       : '',
@@ -95,7 +109,9 @@ export function planReplyPrompt({
       ? `\n【群知识库（有来源才用；没有把握就说记不清）】\n${knowledge.slice(0, 3).map((k) => `- ${String(k.text || k.summary || '').slice(0, 120)}`).join('\n')}\n`
       : '',
     memory: memory.length
-      ? `\n【长期记忆（只有你知道）】\n${memory.map((item) => `- ${String(item.text || '').slice(0, 90)}`).join('\n')}\n`
+      ? memoryScope === 'owner'
+        ? `\n【长期记忆（只有你知道）】\n${memory.map((item) => `- ${String(item.text || '').slice(0, 90)}`).join('\n')}\n`
+        : `\n【公开记忆（关系与形象，可以自然提起）】\n${memory.map((item) => `- ${String(item.text || '').slice(0, 90)}`).join('\n')}\n`
       : '',
     recent: recent.length
       ? `\n【最近跨渠道对话】\n${recent.map((item) => `${item.role === 'user' ? '对方' : '你'}：${String(item.text || '').slice(0, 70)}`).join('\n')}\n`
@@ -123,11 +139,13 @@ export function planReplyPrompt({
       current.memory,
       current.recent,
       current.history,
+      current.activity,
       current.group,
       current.knowledge,
       `${who}：`,
       event.text,
       current.image,
+      current.sticker,
     ]
       .filter(Boolean)
       .join('\n')
@@ -257,38 +275,70 @@ export async function askLocal(prompt, config = {}, { timeoutMs = 20000 } = {}) 
 
 export function cleanLong(text, limit = 12000) {
   const value = String(text || '')
-    .replace(/```[\s\S]*?```/g, ' ')
     .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-    .replace(/\s+/g, ' ')
     .trim()
-  if (value.length > limit) return value.slice(0, limit - 1) + '…'
-  return value
+  if (value.length <= limit) return value
+  // 2026-11-04 保真：超限按行截断，不删代码块、不压换行；单行超长才硬切。
+  const lines = value.split('\n')
+  const kept = []
+  let size = 0
+  for (const line of lines) {
+    if (size + line.length + 1 > limit) break
+    kept.push(line)
+    size += line.length + 1
+  }
+  if (kept.length) return kept.join('\n').trimEnd() + '\n…（已截断）'
+  return value.slice(0, limit - 1) + '…'
 }
 
 /**
  * 生成一条回复。返回 { text, model, route }；text 已按 maxChars 截断。
  */
-export async function generateReply({ identity, event, history = [], memory = [], recent = [], groupRecent = [], knowledge = [], llm, local, vision = null, maxChars = 120, maxTokens = 1000, forceBig = false, samples = 1, budgetChars = 6000, contextPlan = null, signal }) {
-  const planned = planReplyPrompt({ identity, event, history, memory, recent, groupRecent, knowledge, budgetChars, contextPlan })
+export async function generateReply({ identity, event, history = [], memory = [], memoryScope = '', recent = [], groupRecent = [], knowledge = [], llm, local, vision = null, maxChars = 120, maxTokens = 1000, forceBig = false, samples = 1, budgetChars = 6000, contextPlan = null, signal }) {
+  const planned = planReplyPrompt({
+    identity,
+    event,
+    history,
+    memory,
+    memoryScope,
+    recent,
+    groupRecent,
+    knowledge,
+    budgetChars,
+    contextPlan,
+    activity: detectActivity(event?.text),
+  })
   const prompt = planned.prompt
   const promptStats = planned.stats
   const imageCount = Array.isArray(event.images) ? event.images.length : 0
   if (imageCount > 0 && vision?.config?.enabled !== false) {
     try {
       let usage = null
+      const onUsage = (value) => {
+        usage = value
+      }
+      const prepared = (Array.isArray(event.images) ? event.images : []).filter((x) => Buffer.isBuffer(x?.bytes) && x.bytes.length)
       // 优先用 dsh-vision 服务（独立插件），拿不到就回退本地实现
       const ask = typeof vision.ask === 'function' ? vision.ask : askVision
-      const result = await ask({
-        download: vision.download,
-        account: typeof vision.account === 'function' ? vision.account() : vision.account,
-        config: vision.config || {},
-        prompt,
-        images: event.images,
-        maxTokens,
-        onUsage: (value) => {
-          usage = value
-        },
-      })
+      const result = prepared.length
+        // 图片库已把图下载到内存：直接发 bytes，避免同一张图下两遍
+        ? await askVisionBytes({
+            account: typeof vision.account === 'function' ? vision.account() : vision.account,
+            config: vision.config || {},
+            prompt,
+            images: prepared,
+            maxTokens,
+            onUsage,
+          })
+        : await ask({
+            download: vision.download,
+            account: typeof vision.account === 'function' ? vision.account() : vision.account,
+            config: vision.config || {},
+            prompt,
+            images: event.images,
+            maxTokens,
+            onUsage,
+          })
       const text = stripMeta(cleanLong(result.text))
       if (text) return { text, model: result.model || 'deepseek-flash', route: 'vision', usage, promptStats }
     } catch {
