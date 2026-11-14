@@ -8,8 +8,9 @@ import fs from 'node:fs'
 
 export function startOllamaWatch(local = {}, log = () => {}) {
   const endpoint = String(local.endpoint || 'http://127.0.0.1:11434').replace(/\/+$/, '')
-  const exe = String(local.exe || '')
-  const models = String(local.models || '')
+  const OLLAMA_HOME = process.env.OLLAMA_HOME || ''
+  const exe = String(local.exe || (OLLAMA_HOME ? `${OLLAMA_HOME}\\app\\ollama.exe` : ''))
+  const models = String(local.models || (OLLAMA_HOME ? `${OLLAMA_HOME}\\models` : ''))
   let starting = false
 
   const ping = async () => {

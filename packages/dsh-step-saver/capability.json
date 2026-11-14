@@ -1,0 +1,81 @@
+{
+  "name": "dsh-step-saver",
+  "version": "0.1.4",
+  "intent": "降低一般模式的步数与每步上下文体积。四条出口：四个低体积工具（run_node / ls_tree / file_outline / smart_grep）、工具面瘦身（slim 通道把 72 个工具收到约 38 个）、toolbox 按需挂载分组、步数纪律提示词段落。",
+  "tools": [
+    {
+      "name": "run_node",
+      "purpose": "跑 .mjs / .js 脚本并只回尾部与落盘路径，内部注入 ELECTRON_RUN_AS_NODE / PYTHONPATH / PYTHONIOENCODING",
+      "replaces": "手工拼 powershell + 四条环境变量（7 天内约 1,300 次）"
+    },
+    {
+      "name": "ls_tree",
+      "purpose": "按深度与过滤列出目录树，只回名称与大小，不回内容",
+      "replaces": "Get-ChildItem 递归 + Format-Table（288 次）"
+    },
+    {
+      "name": "file_outline",
+      "purpose": "只回文件骨架（标题 / 函数 / 类 / 导出 / 行号），约 200 token/文件",
+      "replaces": "盲读整文件后再回读（read 重复率 35.3%）"
+    },
+    {
+      "name": "smart_grep",
+      "purpose": "grep 命中附文件结构摘要与命中块边界，一次给够定位信息",
+      "replaces": "grep 一次 + read 两次的链式探索"
+    },
+    {
+      "name": "toolbox",
+      "purpose": "把 slim 收起的分组（media / system / sched / cal / rp / fin / work）挂回当前会话",
+      "replaces": "把 72 个工具全量常驻"
+    }
+  ],
+  "limits": [
+    "0.1.4：当前预设优先读取 agentPresets.composedPreset / presetForSession，创建头仅作回退。",
+    "presetPolicies.research.strict 独立于 enabled，view 与执行 guard 共用七工具清单，不允许 toolbox 扩展；run_code 作为宿主传输保留，但受限于底层能力。",
+    "一般模式仍按 enabled/excludePresets/keep/groups 行为运行；专用 strict 模式允许空工具面而不恢复全量。",
+    "file_outline 对 JSON / CSV / 日志这类纯数据文件降级为「前 20 行 + 总行数」，不给伪骨架",
+    "run_node 只用于本机 node 语义脚本，不替代 pwsh 的任意命令能力",
+    "toolbox 的挂载是会话内存态，不落盘；重开会话恢复默认可见集",
+    "toolbox 挂载按 exec 解析出的全部会话键各写一份（agent.session.id / session.id / agent.id …），任一键重合即生效；一个键都解析不到时才退回 _global 兜底"
+  ],
+  "failureModes": [
+    "白名单漏了某个工具 → 该工具在一般模式里不可见，用 toolbox 挂组或临时把 slim.json 的 enabled 改 false",
+    "view 包装装载失败（宿主改了 ToolsService 结构）→ 日志记 '过滤器已装载' 缺失，工具面不变，不影响可用性",
+    "run_node 的脚本 stdout 被吞（Electron 下常态）→ 必须靠落盘文件判读，工具会把落盘路径回给你"
+  ],
+  "id": "step-saver",
+  "package": "dsh-step-saver",
+  "inputs": [
+    "script",
+    "args",
+    "cwd",
+    "timeoutMs",
+    "out",
+    "path",
+    "depth",
+    "filter",
+    "limit",
+    "all",
+    "pattern",
+    "include",
+    "maxHits",
+    "ignoreCase",
+    "show"
+  ],
+  "outputs": [
+    "tail",
+    "outPath",
+    "tree",
+    "outline",
+    "matches",
+    "mounted"
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none"
+  },
+  "changedAt": "2026-11-14T20:30:00+08:00"
+}

@@ -1,0 +1,13 @@
+{
+  "sessionsRoot": "",
+  "stepsWarn": 200,
+  "stepsHard": 250,
+  "tokensWarn": 200000000,
+  "perStepWarn": 400000,
+  "cacheRateWarn": 0.7,
+  "contextWarn": 250000,
+  "contextHard": 400000,
+  "burstInput": 100000,
+  "burstCacheRate": 0.8,
+  "burstCount": 2
+}

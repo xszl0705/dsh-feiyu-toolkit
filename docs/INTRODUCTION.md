@@ -7,7 +7,7 @@
 
 ## 这是什么
 
-23 个给 [DeepSeek Harness](https://github.com/deepseek-ai) 用的插件。
+31 个给 [DeepSeek Harness](https://github.com/deepseek-ai) 用的插件。
 
 它们不是独立软件，而是**往 DSH 里加工具和能力**的扩展。装上之后，你的 AI 助手会多出一些能做的事：画图、抓屏、记长期记忆、接 QQ、测插件等等。
 
@@ -17,6 +17,7 @@
 - **各自独立** —— 各插件互不依赖（公共底座 `dsh-plugin-kit` 除外），装哪个用哪个，删掉不留残渣
 - **本地优先** —— 数据都在你自己机器上（SQLite / JSONL / 图片文件），不上传云端
 - **可移植** —— 没有硬编码的机器路径，clone 下来改成你的就能跑
+- **31 个包里 22 个挂工具，9 个是服务层**（不挂工具，被别的插件 `ctx.get` 调用）
 
 ## 适合谁
 
@@ -121,7 +122,7 @@
 
 | 插件 | 一句话 |
 |---|---|
-| `dsh-plugin-kit` | 所有插件共用的最小工具集：生命周期、原子写、`load.log`、等工具就绪、进程分类、桌宠交互计划。**其余 22 个插件都 import 它，必须最先装** |
+| `dsh-plugin-kit` | 所有插件共用的最小工具集：生命周期、原子写、`load.log`、等工具就绪、进程分类、桌宠交互计划。**其余 30 个插件都 import 它，必须最先装** |
 
 ### 绘图与视觉
 
@@ -140,6 +141,8 @@
 | `dsh-memory-unified` | 跨会话长期记忆：SQLite + FTS5、去重、失效语义 |
 | `dsh-group-knowledge` | 群聊知识库，按群隔离，与私有记忆分开 |
 | `dsh-budget-watch` | 会话 token 预算看板：步数、累计消耗、缓存命中率，超线提示交接 |
+| `dsh-econ-news` | 经济新闻采集与简报：22 个源、按日存档、五分区简报，只在研学模式可见 |
+| `dsh-evidence` | 舆情采集与事实核验：抓取、取证、交叉验证、矛盾点标出 |
 
 ### 人格与对话
 
@@ -168,6 +171,17 @@
 | `dsh-naga-tools` | 启动应用、天气时间、系统控制（白名单动作） |
 | `dsh-service-autostart` | 服务自愈：QQ / 心跳没在跑就拉起 |
 | `dsh-playground` | 试验区管理：启停隔离实例、装插件 |
+| `dsh-lan-web` | 把 web 界面开放到局域网，手机同 WiFi 跟进同一会话 |
+| `dsh-fyrunner` | 托管 FyRunner 本地推理服务：启停、查状态、看日志 |
+| `dsh-step-saver` | 会话瘦身：读盘工具 + slim 白名单 + 按需挂载 |
+
+### 扮演与创作
+
+| 插件 | 一句话 |
+|---|---|
+| `dsh-rp-kit` | 角色卡 / 世界观素材工具箱：盘点、打包、立绘、批量导入、体检 |
+| `dsh-rp-mode` | 扮演专用模式：只留角色卡与扮演记忆工具，没有终端与文件工具 |
+| `dsh-gm-craft` | GM 创作工具组：世界 / 场景 / 节拍 / 光束 / 校验 |
 
 ---
 
@@ -244,6 +258,8 @@ DSH 生态里已经有不少人做过记忆、上下文管理这类事。这些�
 | **Shimeji 系** | [Shimeji-Desktop](https://github.com/DalekCraft2/Shimeji-Desktop) · [shimeji-rs](https://github.com/danhab99/shimeji-rs) | 未明确声明 | 「行为 = 数据」的 `Action` × `Behavior` 状态机、物理下落与拖拽 |
 | **AstrBot** | [AstrBotDevs/AstrBot](https://github.com/AstrBotDevs/AstrBot) | **AGPL-3.0** ⚠️ | 群聊参与的概率门 + 复核、静默密度、四态心流。**未复制代码** |
 | **LangBot** | [langbot-app/LangBot](https://github.com/langbot-app/LangBot) | Apache-2.0 | 多平台通道抽象 |
+| **本仓内部**：`dsh-rp-mode` | 本仓 | MIT | `dsh-step-saver` 的「按模式收窄工具面 + 按需挂回」手法就是从它搬过去的；`dsh-evidence` / `dsh-econ-news` 的独立 preset 挂载写法同理 |
+| **FyRunner 跑团引擎** | 随包分发在 `packages/dsh-fyrunner/runtime/` | 以其原项目为准 | `dsh-fyrunner` 是在它外面加的一层 Node 托管壳（起停 / 状态 / 开窗 / 日志），服务端 Python 代码不是本仓原创 |
 
 > 注意：`dsh-engram` 在生态里有同名项目（[skepsun/dsh-engram](https://github.com/skepsun/dsh-engram) 是极简版），
 > 这里指的是有 SQLite + FTS5 + 向量检索 + SM-2 的那个。
@@ -281,6 +297,7 @@ DSH 生态里已经有不少人做过记忆、上下文管理这类事。这些�
 - **行情数据**来自腾讯财经的公开接口，**仅供个人学习研究**，不构成任何投资建议。数据的准确性、及时性由数据提供方决定，本项目不做保证。
 - **天气数据**来自 wttr.in。
 - **图片理解**走 DeepSeek API 时，图片会上传到 DeepSeek 的服务器，请自行判断内容是否适合外发。
+- **经济新闻**（`dsh-econ-news`）来自 IMF（SDMX / 站点正文）、WSJ 与 FT 的公开 RSS、美联储 / BEA / USTR / NBER / arXiv / ECB / World Bank，以及中国人民银行 / 国家统计局 / 财政部 / 商务部 / `gov.cn`，FT/WSJ 断流时用华尔街见闻公开接口补位。**只取公开接口与 RSS，只存标题、摘要与原文链接**（全文受各家条款限制，抓不到就写进简报的「缺口」段，不拿别的内容顶替）；抓到的内容只落本机存档，供个人研究，不再分发。
 
 ---
 

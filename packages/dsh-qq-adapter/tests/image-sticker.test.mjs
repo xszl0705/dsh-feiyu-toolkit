@@ -239,7 +239,12 @@ test('newestAttachmentImage 取最近的一张，太旧的不算', () => {
   assert.equal(newest.attachmentId, newSha)
   assert.equal(newest.mediaType, 'image/gif')
 
-  const none = newestAttachmentImage(root, { maxAgeMs: 0 })
+  // 2026-11-14 修 flaky：原来用 `maxAgeMs: 0` 断言 null，隐含「now - mtime 恒 > 0」；
+  // 实现是 `now - mtime > maxAgeMs`，同一毫秒时 0 > 0 为假 → 文件不算过期 → 返回对象。
+  // 于是单独跑常绿（快、同毫秒概率高），串跑偶发红。改用明确的过期时间点，不依赖 0 边界。
+  const stale = Date.now() - 60 * 60 * 1000
+  fs.utimesSync(newFile, stale / 1000, stale / 1000)
+  const none = newestAttachmentImage(root, { maxAgeMs: 30 * 60 * 1000 })
   assert.equal(none, null)
 })
 

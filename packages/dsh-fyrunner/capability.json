@@ -1,0 +1,39 @@
+{
+  "id": "fyrunner",
+  "package": "dsh-fyrunner",
+  "version": "0.1.0",
+  "intent": "托管 FyRunner 跑团引擎：启动/停止本地 Python 服务、查状态、开窗、看日志",
+  "inputs": ["action", "port"],
+  "outputs": ["running", "url", "pid", "port", "provider", "mods", "logTail"],
+  "limits": [
+    "只托管插件自带的 runtime/，不接管外部 FyRunner 安装",
+    "只在本机 127.0.0.1 上起服务，不对外开放端口",
+    "不改 runtime/config.json 里的模型与密钥，只读透传",
+    "stop 只杀本插件 pid 文件记录的进程；无 pid 时按端口反查，杀前二次确认端口归属",
+    "不安装 Python、不装 pip 包（runtime 只用标准库）"
+  ],
+  "failureModes": [
+    {
+      "code": "PYTHON_NOT_FOUND",
+      "meaning": "PATH 与配置里都没有可用的 python",
+      "retry": "返回候选与手动配置方法，不自动下载"
+    },
+    {
+      "code": "START_TIMEOUT",
+      "meaning": "进程起了但 /api/health 在超时内没应答",
+      "retry": "读取 .python.log 尾部一并返回，供定位"
+    },
+    {
+      "code": "PORT_IN_USE",
+      "meaning": "目标端口被别的进程占用",
+      "retry": "先从 8760 起向后找空端口，找到后记住"
+    }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low-idle",
+    "memory": "python 进程常驻约 30MB + 模型显存另计",
+    "network": "local-only"
+  },
+  "changedAt": "2026-11-07T19:40:00+08:00"
+}

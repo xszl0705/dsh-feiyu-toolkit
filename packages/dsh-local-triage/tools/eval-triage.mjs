@@ -2,8 +2,8 @@
  * 离线评测：跑回归集，出混淆矩阵。
  *
  * 用法（Electron 当 node 用，stdout 会丢，所以结果落文件）：
- *   E:\dsh\DeepSeek Harness.exe tools\eval-triage.mjs --rules   只测规则层
- *   E:\dsh\DeepSeek Harness.exe tools\eval-triage.mjs --full    规则 + 本地 4B
+ *   <DSH_HOME>/DeepSeek Harness.exe tools\eval-triage.mjs --rules   只测规则层
+ *   <DSH_HOME>/DeepSeek Harness.exe tools\eval-triage.mjs --full    规则 + 本地 4B
  *
  * 关键看的不是总准确率，是「真 frontier → 预测 local」这一格：
  * 它必须是 0，否则方案不能上。

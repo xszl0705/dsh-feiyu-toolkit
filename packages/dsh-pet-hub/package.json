@@ -1,6 +1,6 @@
 {
   "name": "dsh-pet-hub",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "桌宠侧的「三合一」状态卡与进程/心情/朗读数据源；不改 DSH 页面，卡片画在桌宠身上。",
   "type": "module",
   "main": "index.js",
@@ -10,7 +10,10 @@
     "config.json",
     "cordis.patch.yml",
     "README.md",
-    "pet-card"
+    "pet-card",
+    "capability.json",
+    "client.js",
+    "config.example.json"
   ],
   "dsh": {
     "bundle": {
@@ -21,12 +24,11 @@
     "node": ">=20"
   },
   "license": "MIT",
-  "peerDependencies": {
-    "dsh-plugin-kit": ">=0.1.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git",
+    "directory": "packages/dsh-pet-hub"
   },
-  "peerDependenciesMeta": {
-    "dsh-plugin-kit": {
-      "optional": true
-    }
-  }
+  "author": "xszl0705",
+  "homepage": "https://github.com/xszl0705/dsh-feiyu-toolkit/tree/main/packages/dsh-pet-hub"
 }

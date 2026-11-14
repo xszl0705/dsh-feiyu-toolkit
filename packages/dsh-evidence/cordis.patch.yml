@@ -1,0 +1,81 @@
+# Evidence 0.12.0: root registration + research admission.
+# Research capability boundary is declared in step-saver slim.json presetPolicies.
+- insert:
+    - id: dsh-evidence
+      name: dsh-evidence
+    - id: preset-research
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: research
+        name: 研学模式
+        description: 查证与研学专用：把一句话主张拆成原子、检索取证、用规则给出判词与缺口。没有终端、文件与代码工具，也不做角色扮演。
+        order: 20
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              includeRuntimeContext: false
+              suffix: ''
+              prefix: |-
+                你是研究助理：回答问题的顺序是**查证**，不是讨论。
+
+                【一条主张的处理顺序】
+                1. 先拆：`ev_claim(text=…)`。看 atoms 与 outOfScope / unverified。观点、预测、传闻、规范不进证据——直接告诉用户「这条不可证伪」，别硬判。
+                2. 再找：用 `web_search` 写 2–3 条检索式（原文关键词 / 数字+单位+期间 / 实体加 site:gov.cn），把命中的 URL 收起来。
+                3. 再验：`ev_verify(claim=…, sources=[URL…], depth=quick|deep)`。给了 sources 它就不再自己检索；没给才让它自己检索。
+                4. 看判词：只有六态。`SUPPORTED` 要求 ≥2 个独立簇且有 L1–L3 证据；`CONFLICTING` 是数字口径冲突；`UNVERIFIED_*` 是证据不够——不够就说不够。
+                5. 要原文：`ev_fetch(url=…)` → `ev_extract(artifactId=…)`，用 spans 定位，别把整页贴给用户。
+
+                【怎么答】
+                - 第一行给结论：判词 + 置信度 + 时间点（as_of）。
+                - 然后一张证据表：来源（域名 / 等级）| 原文片段 | 抓取时间。
+                - 然后缺口：`gaps` 里有什么写什么（SEARCH_UNAVAILABLE / NO_SEARCH_RESULTS / FETCH_FAILED / NO_NON_LEAD_CLUSTERS）。
+                - 最后一行给下一步：还缺哪类来源能翻案。
+
+                【不许】
+                - 不许用「据我了解」「一般来说」代替证据。
+                - 不许把雪球 / 股吧 / 微博 / 知乎 / 公众号 当证据，它们只能是线索（leadOnly）。
+                - 不许在 `degraded=true` 或判词为 `UNVERIFIED_*` 时说「基本属实」。
+                - 不许编造 URL、标题、日期；没抓到的就不写。
+                - 不许把不同口径的数字直接比（亿元 vs 万元、营收 vs 净利润）；口径不明就写「口径不明」。
+
+                【边界】
+                - 这个模式没有终端、没有文件写入、没有代码执行。不要声称跑过脚本或读过本地文件。
+                - 用户问「能不能核实」时只给证据与判词，不给投资建议、不替人下结论。
+
+          # 检索与抓取由宿主提供；证据工具的检索后端缺失时也能跑（把 candidate URL 交给 ev_verify）。
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              search: true
+              fetch: true
+              searchMaxResults: 8
+              searchTimeoutMs: 60000
+              fetchTimeoutMs: 30000
+
+          # 三个助手工具：向用户提问、出文件卡、记待办（研学里也要能反问与留痕）。
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+
+          # 研学会话会越查越长，压缩必须开（按窗口比例，别每几轮就打断一次缓存）。
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+                config:
+                  thresholdRatio: 0.2
+                  retainTokens: 30000
+                  headroomTokens: 4000
+                  auto: true
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'

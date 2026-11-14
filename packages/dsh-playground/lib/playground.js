@@ -18,8 +18,8 @@ import path from 'node:path'
 import { isAlive, portOpen as kitPortOpen } from 'dsh-plugin-kit/process'
 
 const DEFAULTS = {
-  exe: '',
-  cli: '',
+  exe: process.env.DSH_HOME ? path.join(process.env.DSH_HOME, 'DeepSeek Harness.exe') : '',
+  cli: process.env.DSH_HOME ? path.join(process.env.DSH_HOME, 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js') : '',
   port: 3080,
   bootTimeoutMs: 45000,
 }
@@ -315,7 +315,7 @@ export function installPlugin({ profile, packageName, sourceDir, config = {}, no
 
   // 1) 备份
   const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
-  const backupRoot = config.backupRoot || path.join(os.homedir(), '.dsh', 'backups')
+  const backupRoot = config.backupRoot || path.join(process.env.DSH_WORKSPACE || process.cwd(), 'github', 'backups')
   const backupDir = path.join(backupRoot, `${stamp}-before-${packageName}-in-${profile}`)
   try {
     fs.mkdirSync(backupDir, { recursive: true })

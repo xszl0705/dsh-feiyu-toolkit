@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "dataDir": "",
+  "autoCollect": true,
+  "autoDelayMs": 20000,
+  "dailyBudgetMs": 180000,
+  "concurrency": 4,
+  "maxArticlesPerSource": 12,
+  "proxy": "",
+  "ftCookie": "",
+  "llm": {
+    "enabled": false,
+    "baseUrl": "",
+    "apiKey": "",
+    "model": ""
+  },
+  "workspace": {
+    "autoPush": true,
+    "preset": "research",
+    "title": "经济观察台",
+    "ensureDelayMs": 8000
+  },
+  "disabledSources": [
+    "mofcom",
+    "gov-yaowen"
+  ]
+}

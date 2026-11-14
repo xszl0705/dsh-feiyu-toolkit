@@ -1,17 +1,17 @@
-﻿import test from 'node:test'
+import test from 'node:test'
 import assert from 'node:assert/strict'
 import { classifyProcess, isAlive, listOwnProcesses, portOpen, stopOwnProcess } from '../lib/process.js'
 
 test('classifyProcess 认得三类自有进程', () => {
   assert.equal(classifyProcess({ name: 'pythonw.exe', cmd: 'C:\\x\\pythonw.exe run_pet.py' }), 'pet')
   assert.equal(classifyProcess({ name: 'python.exe', cmd: 'C:\\x\\python.exe run_pet.py' }), 'pet')
-  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: 'C:\\tools\\x.exe x mind-loop.mjs' }), 'mindLoop')
-  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: 'C:\\tools\\x.exe --expose-internals cli.js --profile verifyx' }), 'verifyx')
-  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: 'C:\\tools\\x.exe --profile=verifyx' }), 'verifyx')
+  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: '<DSH_HOME>\\x.exe x mind-loop.mjs' }), 'mindLoop')
+  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: '<DSH_HOME>\\x.exe --expose-internals cli.js --profile verifyx' }), 'verifyx')
+  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: '<DSH_HOME>\\x.exe --profile=verifyx' }), 'verifyx')
 })
 
 test('classifyProcess 不认宿主与无关进程', () => {
-  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: 'C:\\tools\\x.exe --profile desktop' }), null)
+  assert.equal(classifyProcess({ name: 'DeepSeek Harness.exe', cmd: '<DSH_HOME>\\x.exe --profile desktop' }), null)
   // 路径里恰好出现 verifyx 但命令行没有 --profile 的不算
   assert.equal(classifyProcess({ name: 'node.exe', cmd: 'C:\\x\\profiles\\verifyx\\node_modules\\a.js' }), null)
   assert.equal(classifyProcess({ name: 'python.exe', cmd: 'C:\\x\\other.py' }), null)

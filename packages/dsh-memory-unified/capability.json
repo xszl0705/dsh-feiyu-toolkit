@@ -1,7 +1,7 @@
 {
   "id": "memory",
   "package": "dsh-memory-unified",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "intent": "长期记忆：写入、检索、去重、软删除、体检、导入导出",
   "inputs": [
     "text",
@@ -32,6 +32,16 @@
       "code": "MEMORY_EMPTY",
       "meaning": "文本为空",
       "retry": "不重试"
+    },
+    {
+      "code": "SQLITE_UNAVAILABLE",
+      "meaning": "node:sqlite 不可用（宿主 node 版本变化）",
+      "retry": "明确报错，不退化成内存存储（会静默丢数据）"
+    },
+    {
+      "code": "FTS_INDEX_FAILED",
+      "meaning": "FTS5 索引写入失败",
+      "retry": "主表保留，索引可从 memories 重建"
     }
   ],
   "scope": [
@@ -41,5 +51,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-02T23:20:00+08:00"
+  "changedAt": "2026-11-14"
 }

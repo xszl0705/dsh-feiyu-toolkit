@@ -1,5 +1,7 @@
 # dsh-pet-hub
 
+> 版本 0.3.0
+
 把「心情挂件」「朗读桥卡片」「大肥鱼桌宠」合成**一张浮层卡片**。
 
 **当前是第一步：只启用宿主半端（HTTP 端点）。** 客户端浮层（`client.js`）暂不声明 `dsh.client`，
@@ -78,6 +80,14 @@
 - 只读，不写、不加锁、不做检索
 
 读取逻辑在 `lib/body-memory.js`（原来是 `index.js` 闭包里，没法被测试加载）。**它是 `dsh-pet-diary/lib/body-memory.js` 的同规则副本**——两个包要独立发行，跨包 import 发布后必断，所以各存一份；`dsh-plugins/tests/contracts.mjs` 会同时加载三处（含 mind-loop 的 `workspaceDir`）比对，改一处忘了另一处测试就红。
+
+## 已知限制
+
+- 只监听本机回环地址。
+- 不提供任意文件读取。
+- 不改桌宠行为规则。
+- `{{memory}}` 只读当天工作日志最后一条作为背景（工作区选择与 mind-loop 同规则、只读一个）；读不到退回记忆条数，不影响出句。
+- 状态里的记忆条数优先走 memory-unified 服务，`index.json` 仅兜底（旧后端遗留）。
 
 ## 变更记录
 

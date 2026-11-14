@@ -1,0 +1,5 @@
+# dsh-step-saver —— DSH bundle patch
+# 插入一个纯 Host 插件行；五个工具与 slim 过滤器由 ctx.effect 托管，禁用即卸载。
+- insert:
+    - id: dsh-step-saver
+      name: dsh-step-saver

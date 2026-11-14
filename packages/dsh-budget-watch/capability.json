@@ -1,25 +1,78 @@
 {
   "id": "budget-watch",
   "package": "dsh-budget-watch",
-  "version": "0.1.1",
-  "intent": "看会话的 token 预算：步数、累计消耗、每步均值、缓存命中率，超线时给交接建议。用来回答「这次会话为什么这么贵」「该不该切会话」",
-  "inputs": ["stepsWarn", "stepsHard", "days", "limit"],
-  "outputs": ["steps", "total", "input", "cache", "output", "perStep", "maxStep", "cacheRate", "level", "alerts"],
+  "version": "0.3.2",
+  "intent": "看会话的 token 预算：步数、累计消耗、每步均值、最近一步的上下文规模、缓存命中率，按「步数 + 上下文」双条件判断该不该交接；并用 shape 动作还原请求块结构、定位缓存前缀断点。",
+  "inputs": [
+    "stepsWarn",
+    "stepsHard",
+    "contextWarn",
+    "contextHard",
+    "days",
+    "limit"
+  ],
+  "outputs": [
+    "session",
+    "via",
+    "steps",
+    "total",
+    "input",
+    "cache",
+    "output",
+    "perStep",
+    "maxStep",
+    "context",
+    "lastInput",
+    "lastCacheRate",
+    "cacheRate",
+    "level",
+    "alerts",
+    "frozen",
+    "freezeValue",
+    "breakAt",
+    "turns"
+  ],
   "limits": [
     "纯只读：只解析 ~/.dsh/sessions 下的会话日志，不写任何文件、不联网、不起子进程",
     "不切会话、不重启、不禁用插件——这些是开关，必须由用户手动操作",
-    "步数阈值 200 提醒 / 250 硬线（2026-11-04 统一；config.json、lib/tools.js 兜底、独立脚本 budget-watch.mjs 三处一致）",
+    "判定双条件：步数 200 准备 / 250 交接；最近一步上下文 250k 准备 / 400k 交接（2026-11-08 起；config.json、lib/tools.js 兜底、独立脚本 budget-watch.mjs 共用同一套 judge）",
+    "level 四档：ok / prepare / warn / hard；prepare=先写账本，hard=收尾后交接",
+    "当前会话优先按会话 id 定位（session/event 记录的主会话，跳过子代理）；拿不到 id 才退回 mtime，返回 via=mtime 标明是猜的",
     "usage 字段只在 assistant/message 帧里，缺 usage 的帧跳过不记",
     "多帧 zstd 按魔数切帧逐帧解压，坏帧跳过（Node 流式解压会报 Unknown frame descriptor）",
     "只能看到本机已有会话日志；日志被归档/删除的会话看不到",
     "成本估算是按实测比例推算的，不是真实账单",
-    "工具已合并为单入口 budget(action)，旧名不再注册"
+    "不会主动推送提醒：工具只在被调用时返回结果，主动提示需要另挂轮次结束事件",
+    "shape 动作只按会话事件流还原块结构并累计字符，不读正文、不抓真实请求体；判定断点依赖「1 token ≈ 1 字符」这一本机实测近似，跨语言比例变化时可能有偏差",
+    "工具已合并为单入口 budget(action)，旧名不再注册",
+    "阈值一致性有判据：config.json、lib/tools.js 的 DEFAULTS、工作区脚本 tools/budget-watch.mjs 三处由 tests/threshold-parity.test.mjs 断言逐键相等（脚本不在时跳过）；改一处漏两处会红，不再只靠口头约定"
   ],
   "failureModes": [
-    { "code": "NO_SESSIONS", "meaning": "~/.dsh/sessions 下没有最近的会话日志", "retry": "如实报「没有会话记录」，不猜数字" },
-    { "code": "READ_FAILED", "meaning": "会话文件读不出来或解压全失败", "retry": "跳过该文件，统计其余文件" }
+    {
+      "code": "NO_SESSIONS",
+      "meaning": "~/.dsh/sessions 下没有最近的会话日志",
+      "retry": "如实报「没有会话记录」，不猜数字"
+    },
+    {
+      "code": "READ_FAILED",
+      "meaning": "会话文件读不出来或解压全失败",
+      "retry": "跳过该文件，统计其余文件"
+    },
+    {
+      "code": "SESSION_ID_UNKNOWN",
+      "meaning": "宿主没有 session/event 或插件中途加载，没记到当前会话 id",
+      "retry": "退回 mtime 定位并在返回里标 via=mtime，不假装知道当前会话"
+    }
   ],
-  "scope": ["owner", "private", "session"],
-  "cost": { "cpu": "low", "network": "none", "tokens": "low" },
-  "changedAt": "2026-11-04T00:06:00+08:00"
+  "scope": [
+    "owner",
+    "private",
+    "session"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "none",
+    "tokens": "low"
+  },
+  "changedAt": "2026-11-14"
 }

@@ -45,8 +45,34 @@ const STATE_KEY = Symbol.for('dsh-budget-watch.state')
 
 function getState(ctx) {
   const owner = (ctx && ctx.root) || ctx || globalThis
-  if (!owner[STATE_KEY]) owner[STATE_KEY] = { registered: false, waiting: false }
+  if (!owner[STATE_KEY]) owner[STATE_KEY] = { registered: false, waiting: false, sessionId: '' }
+  if (typeof owner[STATE_KEY].sessionId !== 'string') owner[STATE_KEY].sessionId = ''
   return owner[STATE_KEY]
+}
+
+/**
+ * 记住当前主会话 id：session/event 每轮都会带 session 对象。
+ * 子代理会话（有 parentId）跳过——它们的 mtime 会盖过主会话，按 mtime 猜会猜错。
+ */
+function trackSession(ctx) {
+  try {
+    if (typeof ctx.on !== 'function') return
+    ctx.on(
+      'session/event',
+      (session) => {
+        try {
+          const id = String(session?.id || '')
+          if (!id || session?.parentId) return
+          getState(ctx).sessionId = id
+        } catch {
+          // 记录失败不影响工具
+        }
+      },
+      { global: true },
+    )
+  } catch {
+    // 宿主没有 session/event 就退回 mtime 定位
+  }
 }
 
 function registerWhenToolsReady(ctx, callback) {
@@ -95,9 +121,10 @@ export function apply(ctx) {
 }
 
 function applyInner(ctx) {
+  trackSession(ctx)
   registerWhenToolsReady(ctx, (tools) => {
     const config = loadConfig()
-    const definitions = createTools(config)
+    const definitions = createTools(config, { getSessionId: () => getState(ctx).sessionId })
     const registerAll = () => {
       const handles = []
       for (const definition of definitions) {

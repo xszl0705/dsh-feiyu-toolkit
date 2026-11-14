@@ -1,0 +1,221 @@
+{
+  "id": "evidence",
+  "package": "dsh-evidence",
+  "version": "0.12.0",
+  "intent": "抓取外部信息并落成可复核的证据链：ev_fetch 抓原文落 artifact，ev_extract 抽正文/表格/JSON，ev_claim 拆原子（数字带口径），ev_search 检索并按同源归并成簇（A–E 分级、UGC 只作线索），ev_verify 把一条声明走完检索→抓取→比对→规则判决→落库；置信度可由 basis 复算",
+  "inputs": [
+    "url",
+    "expect",
+    "as_of",
+    "deadline_ms",
+    "artifactId",
+    "target",
+    "maxChars",
+    "text",
+    "query",
+    "limit",
+    "claim",
+    "depth",
+    "sources"
+  ],
+  "outputs": [
+    "status",
+    "artifactId",
+    "dedup",
+    "channel",
+    "httpStatus",
+    "bytes",
+    "sha256",
+    "encoding",
+    "replacementChars",
+    "quality",
+    "dataAsOf",
+    "textChars",
+    "qualityFlags",
+    "attempts",
+    "traceId",
+    "tracePath",
+    "text",
+    "tables",
+    "json",
+    "spans",
+    "parsedPath",
+    "claimId",
+    "inserted",
+    "asOf",
+    "atomCount",
+    "atoms",
+    "outOfScope",
+    "unverified",
+    "query",
+    "candidateCount",
+    "clusterCount",
+    "clusters",
+    "candidates",
+    "coverage",
+    "verdictId",
+    "depth",
+    "verdict",
+    "confidence",
+    "basis",
+    "rulesVersion",
+    "producer",
+    "evidenceCount",
+    "evidence",
+    "leads",
+    "gaps",
+    "degraded",
+    "queries"
+  ],
+  "limits": [
+    "0.12.0：根行单路同步注册；when 按 live composition / Session projection 准入 research；注销调用返回函数。",
+    "完整工具边界由 dsh-step-saver 0.1.4 的 presetPolicies.research 实施：五个 ev 工具与两个 web 工具；不依赖 persona 文案隔离。",
+    "诊断为 required 的只读 context；不补注册，记录 PID/session/current preset/visible/admitted。日志默认 dataDir/mode-diagnostic.log。",
+    "已完成离线及真实宿主组件集成验证；重启后的真实模型请求、调用与落库仍须会话验收。",
+    "只注册五个工具：ev_fetch / ev_extract / ev_claim / ev_search / ev_verify；ev_trace / ev_probe 未实现",
+    "ev_verify 的 sources 给了 URL 就不再自己检索（研学模式通常先用宿主 web_search 挑候选，再把 URL 交进来）",
+    "检索后端不内置：由 index.js 按 webSearch / search 服务名鸭子类型解析，解析不到时 ev_search/ev_verify 返回 SEARCH_UNAVAILABLE（ev_verify 同时 degraded=true 并只弃权）",
+    "覆盖度不吹：coverage.saturation 在 P0 恒为 unknown，UNVERIFIED_SATURATED 不可达（列为 P1）",
+    "UGC 平台（雪球/股吧/微博/知乎/公众号）只作线索：level=E、leadOnly=true，进 leads 不进 evidence",
+    "同源归并只看内容：标题归一键相同，或「标题+摘要」3-gram shingle 相似度 ≥ 0.6 → 同一簇；簇等级取成员最高等级",
+    "每簇只取一条最优成员作证据，同一篇稿转载到多家只算一个独立源",
+    "数字比对先看原文是否命中同一数字串；未命中才在同一 basis（无 basis 时同一 period）下比，避免同页多个金额互相误判冲突",
+    "抓取失败写 gaps（FETCH_FAILED:<url>），不当作「没有反向证据」；文本过短写 TEXT_TOO_SHORT",
+    "判决只由规则产生，producer 只能是 js_rule（P0）；LLM 不得写判决字段",
+    "degraded 且 gaps 为空必须抛 INVARIANT_VIOLATION：故障不许伪装成结论",
+    "置信度公式固定 conf = round4(min(cap, 0.5P + 0.15·indep + 0.2·level + 0.15·freshness))，formula_id=conf_v1；basis 必须能复算到 1e-9（I8）",
+    "一致性 P 只有三档：一致簇占比 ≥0.8 → 0.8；≤0.3 → 0.2；其余 0.5；cap：独立源<2 → 0.6、无 L1–L3 → 0.5（取更严）",
+    "已校验不变量：I2/I3/I4/I8/I10/I13/I17/I18，加 I16 读侧；其余（I1/I5/I6/I7/I9/I11 部分/I12/I14/I15）待事件链落地",
+    "host_fetch 通道未接入：index.js 传 hostFetch=null，一律记 NO_HOST_FETCH 跳过，实抓走 node_direct",
+    "as_of 只回填 dataAsOf / claimId / idem_key，不做时间过滤；I13 仅在 evidence 自带 fetched_at 时校验",
+    "ev_extract 按 maxChars（默认 8000）截断返回正文，标 TEXT_TRUNCATED；越界 span 直接丢弃，不裁剪",
+    "expect=pdf 只影响声明，不做 PDF 解析；ocr 未实现",
+    "原文不可变：artifacts/*.raw 只新增不改写；同 sha256 内容只落一次，返回既有 artifactId 并标 dedup=true",
+    "抽取不做 DOM 解析（无 jsdom），靠正则+行状态机；script/head/nav/footer/aside 与短行按噪声剔除",
+    "原子分解只做规则字面判定：quote/date/entity_relation 靠关键词；一句里既有数字又有关系时只出 numeric atom；无 span 的 atom 直接丢弃",
+    "比率与增速（% / 个百分点 / pp）的 numeric.basis 一律留空并进 unverified，不靠邻近词猜口径；增速类主张因此容易判「口径不明」",
+    "缺 unit 或 basis 的 numeric atom 保留但必须出现在 unverified，不许静默丢",
+    "claims 按 (归一文本, as_of) 生成 claimId；重复调用幂等，不重复插 claim_atoms / verdicts",
+    "数字复算容差按「该单位最小可存储刻度」并把两侧换算到基准单位后再比；比率/增速无刻度，absTol = 0.5 × 显示精度",
+    "判决落库：同 idem_key 只比内容（不一致抛 I11），新判决把旧 current 标 superseded_by；同 (claim, rules_version) 的 current 唯一性由 DB 唯一索引兜底",
+    "不承诺检索全面性，只承诺可复核",
+    "不接已知不可达服务（wikipedia/schema.org/huggingface/raw.githubusercontent/jina/perplexity）",
+    "冲突不裁决，只标注双向证据"
+  ],
+  "failureModes": [
+    {
+      "code": "BAD_URL",
+      "meaning": "url 缺失或不是 http/https",
+      "retry": "不重试，要求补参数"
+    },
+    {
+      "code": "BAD_QUERY",
+      "meaning": "检索式为空",
+      "retry": "不重试"
+    },
+    {
+      "code": "SEARCH_UNAVAILABLE",
+      "meaning": "宿主没暴露检索服务",
+      "retry": "不重试，ev_verify 置 degraded 并弃权"
+    },
+    {
+      "code": "SEARCH_FAILED",
+      "meaning": "检索后端抛错",
+      "retry": "不重试，写进 gaps"
+    },
+    {
+      "code": "NO_SEARCH_RESULTS",
+      "meaning": "检索无候选",
+      "retry": "不重试，gaps 记录后弃权"
+    },
+    {
+      "code": "NO_NON_LEAD_CLUSTERS",
+      "meaning": "命中的全是 UGC，无可作证据的来源",
+      "retry": "不重试，只输出 leads"
+    },
+    {
+      "code": "FETCH_FAILED",
+      "meaning": "某簇抓取失败",
+      "retry": "不当作反向证据，写进 gaps"
+    },
+    {
+      "code": "TEXT_TOO_SHORT",
+      "meaning": "抓到但正文过短（疑似反爬/壳页）",
+      "retry": "仍计证据但记 gap"
+    },
+    {
+      "code": "NOT_FOUND",
+      "meaning": "artifactId 在库里查不到",
+      "retry": "不重试，先用 ev_fetch 取回"
+    },
+    {
+      "code": "BAD_ARGUMENT",
+      "meaning": "必填参数缺失（url / artifactId / text / query / claim）",
+      "retry": "不重试"
+    },
+    {
+      "code": "BAD_NUMBER",
+      "meaning": "cmpNumeric 收到非数字",
+      "retry": "不重试，调用方修数据"
+    },
+    {
+      "code": "NO_UNIT",
+      "meaning": "numeric atom 没有单位",
+      "retry": "不重试，atom 保留并进 unverified"
+    },
+    {
+      "code": "NO_BASIS",
+      "meaning": "numeric atom 没有口径（含比率/增速一律留空）",
+      "retry": "不重试，atom 保留并进 unverified"
+    },
+    {
+      "code": "OUT_OF_SCOPE",
+      "meaning": "观点/预测/规范/传闻，不可证伪",
+      "retry": "不重试，只进 outOfScope"
+    },
+    {
+      "code": "NET_UNREACHABLE",
+      "meaning": "连接层失败",
+      "retry": "换通道"
+    },
+    {
+      "code": "BLOCKED",
+      "meaning": "登录墙或验证码",
+      "retry": "不重试，不落 artifact"
+    },
+    {
+      "code": "RATE_LIMITED",
+      "meaning": "429",
+      "retry": "不重试，等冷却"
+    },
+    {
+      "code": "DECODE_FAILED",
+      "meaning": "按声明与回退编码均解不出",
+      "retry": "不重试，标 MOJIBAKE"
+    },
+    {
+      "code": "NO_EVIDENCE",
+      "meaning": "检索未命中任何证据",
+      "retry": "不重试，输出 UNVERIFIED + gaps"
+    },
+    {
+      "code": "BUDGET_EXCEEDED",
+      "meaning": "截止时间或配额用尽",
+      "retry": "degraded 返回（必须带 gaps）"
+    },
+    {
+      "code": "INVARIANT_VIOLATION",
+      "meaning": "不变量校验失败（含 degraded 无 gaps、idem_key 冲突）",
+      "retry": "拒绝落盘并告警"
+    }
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "fetch-on-demand",
+    "disk": "artifacts 按月归档，同 sha256 不重复落盘"
+  },
+  "changedAt": "2026-11-12T20:55:00+08:00"
+}

@@ -7,7 +7,7 @@
  * 这是**静态启发式**，输出的是"候选清单"，需要人看一眼确认；
  * 目的不是全自动判定，而是把容易漏的地方一次性列出来。
  *
- * 用法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tools\audit-prefix.mjs
+ * 用法：ELECTRON_RUN_AS_NODE=1 "<DSH_HOME>/DeepSeek Harness.exe" tools\audit-prefix.mjs
  * 输出：reports/prefix-audit.json + reports/prefix-audit.md
  */
 

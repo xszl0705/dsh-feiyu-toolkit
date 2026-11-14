@@ -1,9 +1,9 @@
 /**
  * dsh-draw —— 让大肥鱼会画图。
  *
- * 两个工具：
- *   draw_chart  matplotlib 数据图（折线/柱/饼/散点/双轴）
- *   draw_card   Pillow 排版卡片（段落卡片 / 键值列表）
+ * 单个工具 draw，两条产线（2026-11-08 合并，压工具定义）：
+ *   kind=chart  matplotlib 数据图（折线/柱/饼/散点/双轴）
+ *   kind=card   Pillow 排版卡片（段落卡片 / 键值列表）
  *
  * 为什么走 Python：本机没有可靠的 Node 绘图栈，而 Pillow + matplotlib 已经在
  * 沙箱里验证过可用（见 docs/绘图落地实施方案-2026-11-01.md）。

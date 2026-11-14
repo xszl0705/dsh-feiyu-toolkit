@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "snapshotIntervalMinutes": 10,
+  "identityName": "大肥鱼",
+  "identityVersion": "self-model-v1",
+  "channel": "dsh",
+  "pluginRoots": [],
+  "knownPlugins": [
+    "dsh-dafeiyu-core",
+    "dsh-memory-unified",
+    "dsh-dafeiyu-dialog",
+    "dsh-feiyu-brain",
+    "dsh-qq-adapter",
+    "dsh-feiyu-mood-lite",
+    "dsh-pet-diary",
+    "dsh-pet-sync",
+    "dsh-pet-hub",
+    "dsh-naga-tools",
+    "dsh-screenshot",
+    "dsh-tts-bridge",
+    "dsh-feiyu-self",
+    "dsh-group-knowledge",
+    "dsh-service-autostart",
+    "dsh-vision",
+    "dsh-playground"
+  ]
+}

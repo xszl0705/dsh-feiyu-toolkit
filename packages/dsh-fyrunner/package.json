@@ -1,0 +1,39 @@
+{
+  "name": "dsh-fyrunner",
+  "version": "0.1.0",
+  "description": "把 FyRunner 跑团引擎托管成 DSH 原生工具：起停本地服务、查状态、一键开窗、看日志。runtime 内置 Python 后端与 MOD，不依赖 pywebview。",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "runtime",
+    "cordis.patch.yml",
+    "capability.json",
+    "config.example.json",
+    "README.md",
+    "test"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "fyrunner",
+    "trpg",
+    "rp",
+    "ollama"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git"
+  },
+  "author": "xszl0705"
+}

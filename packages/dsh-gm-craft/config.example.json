@@ -1,0 +1,6 @@
+{
+  "root": "",
+  "maxWorldChars": 30000,
+  "minCluesPerScene": 3,
+  "postTargetChars": 200
+}

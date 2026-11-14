@@ -1,0 +1,38 @@
+{
+  "name": "dsh-step-saver",
+  "version": "0.1.4",
+  "description": "一般模式的步数与上下文治理：run_node / ls_tree / file_outline / smart_grep 四个低体积工具 + 工具面瘦身（slim 通道 + toolbox 按需挂载）+ 步数纪律提示词。参照 dsh-rp-mode 的 channel 手法，把「收窄工具面 / 探索结果前置 / 纪律写成硬约束」搬到多任务的一般模式。",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "tools",
+    "cordis.patch.yml",
+    "slim.json",
+    "README.md",
+    "capability.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "steps",
+    "context",
+    "slim",
+    "tools"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git"
+  },
+  "author": "xszl0705"
+}

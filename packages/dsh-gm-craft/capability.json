@@ -1,0 +1,25 @@
+{
+  "id": "gm-craft",
+  "package": "dsh-gm-craft",
+  "version": "0.1.3",
+  "intent": "GM 工坊：把世界—故事—操作—反馈四层固化成工具，帮 GM 建世界卡、出场景卡、生成群聊帖子、分配镜头、记录选择回响、自检崩坏点、按组出世界问卷",
+  "inputs": ["project-name", "world-element", "scene-card", "beat-record", "post-context", "questionnaire-group"],
+  "outputs": ["world-card", "scene-card", "post-draft", "beam-table", "beat-log", "check-report", "questionnaire-group"],
+  "limits": [
+    "不替 GM 写剧情：工具只给结构和字段，判断归模型",
+    "不生成长篇正文：帖子草稿是模板加填空，每段 100-300 字",
+    "不做向量召回：先用关键词激活，够用再加",
+    "不并行审稿：群聊场景下延迟不可接受",
+    "确定性校验（字段完整度、线索条数、目标互斥）用代码算，不调模型",
+    "问卷一次只出一组、最多 20 题（300 题分 18 组），不死一次砸完"
+  ],
+  "failureModes": [
+    {"code": "PROJECT_NOT_FOUND", "meaning": "项目不存在", "retry": "返回已有项目列表"},
+    {"code": "WORLD_RULE_MISSING", "meaning": "世界卡缺核心规则", "retry": "提示先设 rule"},
+    {"code": "SCENE_CLUES_TOO_FEW", "meaning": "场景线索少于三条", "retry": "报告缺口，不阻断保存"},
+    {"code": "QUESTIONNAIRE_GROUP_INVALID", "meaning": "问卷组号超出 1-18", "retry": "报可用的组号范围，不出题"}
+  ],
+  "scope": ["owner"],
+  "cost": {"cpu": "low", "network": "none"},
+  "changedAt": "2026-11-05T23:56:00+08:00"
+}

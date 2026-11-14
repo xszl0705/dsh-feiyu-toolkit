@@ -1,5 +1,7 @@
 # dsh-plugin-kit
 
+> 版本 0.1.0
+
 自研 DSH 插件共用的最小工具集。不是插件，不注册任何工具、路由或服务，只被其他插件 `import`。
 
 ## 为什么要有它
@@ -26,17 +28,17 @@
 
 ## 怎么被解析（重要）
 
-如果 npm/pnpm 不在 PATH，插件目录通常是用 `link:` 挂进 profile 的，模块解析沿真实路径向上找 `node_modules`。所以：
+本机没有 npm/pnpm 在 PATH，插件目录是通过 `link:` 挂进 profile 的，模块解析沿真实路径向上找 `node_modules`。所以：
 
 ```
-<你的 dsh-plugins 目录>\node_modules\dsh-plugin-kit  →  junction 指向  ..\dsh-plugin-kit
+<workspace>\dsh-plugins\node_modules\dsh-plugin-kit  →  junction 指向  ..\dsh-plugin-kit
 ```
 
-这条 junction 是解析的唯一依赖。它**不在** profile 的 `node_modules` 里，pnpm 重装 profile 不会动它；但如果删除 `<你的 dsh-plugins 目录>\node_modules`，所有插件会立刻 `ERR_MODULE_NOT_FOUND`。重建命令：
+这条 junction 是解析的唯一依赖。它**不在** profile 的 `node_modules` 里，pnpm 重装 profile 不会动它；但如果删除 `<workspace>\dsh-plugins\node_modules`，所有插件会立刻 `ERR_MODULE_NOT_FOUND`。重建命令：
 
 ```powershell
-New-Item -ItemType Directory -Force '<你的 dsh-plugins 目录>\node_modules' | Out-Null
-cmd /c mklink /J "<你的 dsh-plugins 目录>\node_modules\dsh-plugin-kit" "<你的 dsh-plugins 目录>\dsh-plugin-kit"
+New-Item -ItemType Directory -Force '<workspace>\dsh-plugins\node_modules' | Out-Null
+cmd /c mklink /J "<workspace>\dsh-plugins\node_modules\dsh-plugin-kit" "<workspace>\dsh-plugins\dsh-plugin-kit"
 ```
 
 ## 用法
@@ -57,3 +59,11 @@ import { atomicWrite } from 'dsh-plugin-kit/atomic-write'
 - 2026-11-04：`pet.js` 修 `DEFAULT_PET_DIR` 在 junction 下解析成 `node_modules\_pets` 的问题（realpath 不可靠，改为按 `run_pet.py` 探测候选目录）；`startPet` 前调 `clearStalePetState` 清过期 `pet.pid` 与 `state.json` 的 running；启动超时附 `pet-instance.log` 尾行。
 
 - 2026-11-04：新增 `interaction-plan.js`（`detectActivity` / `planInteraction`，纯函数），brain 的 `classifyIntent` 输出 `activity`，qq 的回复提示按活动加动态段（稳定段不动，保前缀缓存）。
+
+## 已知限制
+
+- 不是插件：不注册工具/路由/服务，不参与 profile bundles。
+- 只被其他插件 import；包内不得 import 自己（会自引用死循环）。
+- 解析依赖 `dsh-plugins/node_modules/dsh-plugin-kit` 这条 junction，删了就全仓 `ERR_MODULE_NOT_FOUND`。
+- 原子写只保证单文件替换原子，不做跨文件事务。
+- 停进程前必须先用自有清单校验 pid，不在清单里一律拒绝（防误杀宿主与未知进程）。

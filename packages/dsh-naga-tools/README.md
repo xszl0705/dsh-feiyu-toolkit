@@ -1,5 +1,7 @@
 # dsh-naga-tools
 
+> 版本 0.1.0
+
 参照 [Xxiii8322766509/NagaAgent](https://github.com/Xxiii8322766509/NagaAgent) 的
 `mcpserver/agent-*/agent-manifest.json` 契约，把它的三类 agent 能力改写成 **DSH 原生工具**。
 
@@ -40,13 +42,13 @@
 ## 安装
 
 ```bash
-dsh plugin --profile desktop add "link:/path/to/dsh-naga-tools"
+E:/deepseek/resources/runtime/cli/bin/dsh.cmd plugin --profile desktop add "link:<workspace>/github/plugins/dsh-naga-tools"
 ```
 
 卸载：
 
 ```bash
-dsh plugin --profile desktop remove dsh-naga-tools
+E:/deepseek/resources/runtime/cli/bin/dsh.cmd plugin --profile desktop remove dsh-naga-tools
 ```
 
 ## 验证

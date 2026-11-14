@@ -1,6 +1,6 @@
 {
   "name": "dsh-comfy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "接本地 ComfyUI：文生图 + ControlNet 锁构图重绘（表情差分/换装/姿势微调）。服务生命周期归用户，插件不负责拉起。",
   "type": "module",
   "main": "index.js",
@@ -11,7 +11,9 @@
     "capability.json",
     "cordis.patch.yml",
     "extra-model-paths.yaml",
-    "README.md"
+    "README.md",
+    "extra-model-paths.example.yaml",
+    "config.example.json"
   ],
   "dsh": {
     "bundle": {
@@ -40,5 +42,12 @@
     "dsh-plugin-kit": {
       "optional": true
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git",
+    "directory": "packages/dsh-comfy"
+  },
+  "author": "xszl0705",
+  "homepage": "https://github.com/xszl0705/dsh-feiyu-toolkit/tree/main/packages/dsh-comfy"
 }

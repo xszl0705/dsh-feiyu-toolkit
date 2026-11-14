@@ -1,5 +1,5 @@
 /**
- * 真实回归集（100 条），来自 ~/.dsh/dafeiyu/dialogues/ 的真实用户消息。
+ * 真实回归集（100 条），来自 <user>\.dsh\dafeiyu\dialogues\ 的真实用户消息。
  *
  * 已剔除三类"冒充用户"的系统注入：
  *   1. checkpoint 压缩块（This is an automatically generated checkpoint…）

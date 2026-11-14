@@ -1,7 +1,7 @@
 /**
  * 从真实对话日志里抽用户消息，作为回归集候选。
  *
- * 数据源：~/.dsh/dafeiyu/dialogues/*.jsonl
+ * 数据源：<user>\.dsh\dafeiyu\dialogues\*.jsonl
  * 过滤：去掉 system-reminder / 技能目录 / 超长粘贴，去重。
  * 输出：reports/corpus-candidates.json
  */

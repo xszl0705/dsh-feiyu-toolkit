@@ -1,7 +1,7 @@
 {
   "id": "self",
   "package": "dsh-feiyu-self",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "intent": "回答我是谁、会什么、不会什么、最近改了什么；维护决策日志；跑自进化闭环（诊断 → 候选 → 人审 → 三重验证 → 灰度 → 回滚）",
   "inputs": [
     "query",
@@ -37,6 +37,26 @@
       "code": "CAPABILITIES_UNREADABLE",
       "meaning": "capabilities.json 损坏或不可读",
       "retry": "退回内存声明，并在快照里标 stale"
+    },
+    {
+      "code": "UNKNOWN_ACTION",
+      "meaning": "self 工具收到未支持的 action 分支",
+      "retry": "返回可用分支清单，不重试"
+    },
+    {
+      "code": "DIR_REQUIRED",
+      "meaning": "decision log / pipeline / procedure 目录参数缺失",
+      "retry": "不重试，要求补参"
+    },
+    {
+      "code": "VARIANT_ARGS_MISSING",
+      "meaning": "archiveVariant 缺 dir 或 id",
+      "retry": "不重试，要求补参"
+    },
+    {
+      "code": "METRIC_MISSING",
+      "meaning": "窗口内样本不足，指标算不出",
+      "retry": "显式返回 null 并在文案里标注，不用 0 填充"
     }
   ],
   "scope": [
@@ -46,5 +66,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-01T17:40:00+08:00"
+  "changedAt": "2026-11-14"
 }

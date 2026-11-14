@@ -1,7 +1,7 @@
 {
   "id": "brain",
   "package": "dsh-feiyu-brain",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "intent": "意图分类、路由决策、上下文组装、反思、按日统计",
   "inputs": [
     "text",
@@ -29,6 +29,16 @@
       "code": "REFLECTION_FAILED",
       "meaning": "反思失败或写入未确认",
       "retry": "下次任务重试"
+    },
+    {
+      "code": "MEMORY_WRITE_UNCONFIRMED",
+      "meaning": "记忆写入未确认（Save result unconfirmed）",
+      "retry": "保留在队列按幂等键重写，不重复插入"
+    },
+    {
+      "code": "LLM_FINISH_ABNORMAL",
+      "meaning": "llm finish 状态异常（截断 / 工具调用未闭合）",
+      "retry": "丢弃本次结果重发一次；仍异常则降级为简单回复"
     }
   ],
   "scope": [
@@ -40,5 +50,5 @@
     "cpu": "medium",
     "tokens": "variable"
   },
-  "changedAt": "2026-10-31T13:45:00+08:00"
+  "changedAt": "2026-11-14"
 }

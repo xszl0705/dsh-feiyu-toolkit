@@ -1,5 +1,4 @@
 import test from 'node:test'
-import os from 'node:os'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -84,7 +83,7 @@ test('paletteOfImage 返回尺寸、主色、深浅', async () => {
 })
 
 test('真实截图：能解码、能取色、耗时在可接受范围', async () => {
-  const dir = path.join(os.tmpdir(), 'dsh-vision-screens')
+  const dir = process.env.DSH_SCREENS_DIR || path.join(process.cwd(), '_screens')
   if (!fs.existsSync(dir)) return
   const file = fs.readdirSync(dir).find((name) => name.endsWith('.png'))
   if (!file) return

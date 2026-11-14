@@ -1,15 +1,14 @@
 /**
  * 统一入口：本机 stdout 会丢（Electron 以 node 模式跑时），所以结果同时写文件。
- * 跑法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tests/run-all.mjs
+ * 跑法：ELECTRON_RUN_AS_NODE=1 "<DSH_HOME>/DeepSeek Harness.exe" tests/run-all.mjs
  */
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { run as runQuote } from './quote.test.mjs'
 import { run as runSrs } from './srs.test.mjs'
 import { run as runStore } from './store.test.mjs'
 
-const OUT = path.join(os.tmpdir(), 'finance-learn-test.json')
+const OUT = path.join(process.cwd(), '_tmp', 'finance-learn-test.json')
 
 const suites = [
   ['quote', runQuote],

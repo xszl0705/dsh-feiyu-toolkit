@@ -15,7 +15,7 @@ import { cleanReply } from '../lib/prompt.js'
 const CODE = '前面一句。\n\n```python\nprint("hi")\n```\n\n结束。'
 const TABLE = '数据如下：\n| 名称 | 数值 |\n| --- | --- |\n| 甲 | 1 |\n| 乙 | 2 |\n\n结论可用。'
 const QUOTE = '原文里“手滑”是作者自述，不能删。'
-const PATH = '结果在 D:\\out\\report.md，请查收。'
+const PATH = '结果在 D:\\ws\\out\\report.md，请查收。'
 const URL = '链接 https://example.com/x?a=1&b=2 。'
 const JSON_TEXT = '配置：\n```json\n{"a": 1, "b": [2, 3]}\n```'
 
@@ -41,7 +41,7 @@ test('stripMeta 不删合法引文', () => {
 
 test('cleanLong 保留 Windows 路径', () => {
   const out = cleanLong(PATH)
-  assert.ok(out.includes('D:\\out\\report.md'), `路径被改：${out}`)
+  assert.ok(out.includes('D:\\ws\\out\\report.md'), `路径被改：${out}`)
 })
 
 test('cleanLong 保留 URL', () => {

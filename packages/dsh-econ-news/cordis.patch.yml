@@ -1,0 +1,6 @@
+# dsh-econ-news —— DSH bundle patch
+# 纯 Host 插件：根层加载一次，工具由 per-step when 准入限制在研学模式（preset research）。
+# 工具注册与卸载由 ctx.effect 托管，禁用即卸载；不写 profile 之外的位置。
+- insert:
+    - id: dsh-econ-news
+      name: dsh-econ-news

@@ -1,7 +1,7 @@
 {
   "id": "dialog",
   "package": "dsh-dafeiyu-dialog",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "intent": "跨渠道对话记录：追加消息、按会话读取最近若干条",
   "inputs": [
     "conversation",
@@ -20,6 +20,16 @@
       "code": "DIALOG_WRITE_FAILED",
       "meaning": "落盘失败，当前回复照常进行",
       "retry": "下次写入重试"
+    },
+    {
+      "code": "READER_DIR_MISSING",
+      "meaning": "读侧目录未配置（reader dir is required）",
+      "retry": "返回空列表，不抛错"
+    },
+    {
+      "code": "DIALOG_PARSE_SKIPPED",
+      "meaning": "单行 JSON 解析失败（文件被外部改坏 / 半行）",
+      "retry": "跳过该行继续读其余，不中断整次读取"
     }
   ],
   "scope": [
@@ -31,5 +41,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-10-31T13:45:00+08:00"
+  "changedAt": "2026-11-14"
 }

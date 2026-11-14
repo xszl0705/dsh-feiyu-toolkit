@@ -12,7 +12,6 @@
  *   - 不在 apply 时启动任何东西
  */
 
-import os from 'node:os'
 import fs from 'node:fs'
 import { note as kitNote } from 'dsh-plugin-kit/note'
 import path from 'node:path'
@@ -38,12 +37,12 @@ const STATE_KEY = Symbol.for('dsh-playground.state')
 
 const DEFAULTS = {
   enabled: true,
-  exe: '',
-  cli: '',
+  exe: process.env.DSH_HOME ? path.join(process.env.DSH_HOME, 'DeepSeek Harness.exe') : '',
+  cli: process.env.DSH_HOME ? path.join(process.env.DSH_HOME, 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js') : '',
   profilesRoot: '',
   port: 3080,
   bootTimeoutMs: 45000,
-  backupRoot: path.join(os.homedir(), '.dsh', 'backups'),
+  backupRoot: path.join(process.env.DSH_WORKSPACE || process.cwd(), 'github', 'backups'),
 }
 
 function loadConfig() {
@@ -266,7 +265,7 @@ function installTools(ctx, api, st, settings) {
             packageName: { type: 'string', description: 'install 用（必填）：插件包名，如 dsh-feiyu-look' },
             sourceDir: {
               type: 'string',
-              description: 'install 用：源码目录（link: 安装时必填），如 D:\plugins\dsh-feiyu-look',
+              description: 'install 用：源码目录（link: 安装时必填），如 <workspace>\\dsh-plugins\\dsh-feiyu-look',
             },
           },
           required: ['action'],

@@ -1,11 +1,11 @@
 # dsh-draw
 
-给大肥鱼加「画图」能力。两个工具，一条硬规则：**图里要出现准确数字或文字的，走这里。**
+给大肥鱼加「画图」能力。一个工具、两条产线，一条硬规则：**图里要出现准确数字或文字的，走这里。**
 
-| 工具 | 引擎 | 适合 |
+| kind | 引擎 | 适合 |
 |---|---|---|
-| `draw_chart` | matplotlib | 趋势、对比、占比、双指标对照 |
-| `draw_card` | Pillow | 卡片、公告、榜单、体检报告 |
+| `chart` | matplotlib | 趋势、对比、占比、双指标对照 |
+| `card` | Pillow | 卡片、公告、榜单、体检报告 |
 
 不画插画、不做艺术风格——那属于 ComfyUI 或云生图 API，不属于这个插件。
 
@@ -36,11 +36,12 @@ lib/bridge.js    spawn python，文件当 IPC
 
 ## 工具用法
 
-### draw_chart
+### draw · kind=chart
 
 ```json
 {
-  "kind": "bar",
+  "kind": "chart",
+  "chartKind": "bar",
   "labels": ["一月", "二月", "三月"],
   "series": [{ "name": "调用次数", "data": [40, 31, 52] }],
   "title": "月度调用量",
@@ -48,23 +49,23 @@ lib/bridge.js    spawn python，文件当 IPC
 }
 ```
 
-`kind`：`line`（默认）/ `bar` / `pie` / `scatter` / `dual`（第 1 系列柱、第 2 系列线）。
+`chartKind`：`line`（默认）/ `bar` / `pie` / `scatter` / `dual`（第 1 系列柱、第 2 系列线）。
 
-### draw_card
+### draw · kind=card
 
 段落卡片：
 
 ```json
-{ "kind": "card", "title": "标题", "body": "正文，支持 \n 换行", "footer": "页脚" }
+{ "kind": "card", "cardKind": "card", "title": "标题", "body": "正文，支持 \n 换行", "footer": "页脚" }
 ```
 
 键值列表（体检报告这类）：
 
 ```json
-{ "kind": "rows", "title": "体检结果", "rows": [["底模", "anything-v5"], ["显存", "8187MB"]] }
+{ "kind": "card", "cardKind": "rows", "title": "体检结果", "rows": [["底模", "anything-v5"], ["显存", "8187MB"]] }
 ```
 
-两个工具都返回 `{ ok, path, width, height, bytes, elapsedMs }`。**只回路径，不回 base64。**
+`cardKind` 省略时默认 `card`。两条产线都返回 `{ ok, path, width, height, bytes, elapsedMs }`。**只回路径，不回 base64。**
 
 ## 配置
 
@@ -73,7 +74,7 @@ lib/bridge.js    spawn python，文件当 IPC
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 关掉就不注册工具 |
-| `outputDir` | `<工作区>\out\draw` | 默认输出目录，文件按 `chart-<标题>-<时间戳>.png` 命名 |
+| `outputDir` | `<workspace>\out\draw` | 默认输出目录，文件按 `chart-<标题>-<时间戳>.png` 命名 |
 | `pythonPath` | `""` | 留空则自动探测：环境变量 `DSH_PYTHON` → `~/.dsh/dsh-runtimes/*/dependencies/python/python.exe` |
 
 ## 已知限制
@@ -109,5 +110,6 @@ $node = '<你的 DSH 自带 node.exe 路径>'
 
 
 - 2026-11-03 · `note()` 改为 `dsh-plugin-kit/note` 的薄包装，签名与调用点不变。
+- 2026-11-08 · 0.2.0 · `draw_chart` + `draw_card` 合并为单入口 `draw`（`kind=chart|card`），参数改名 `chartKind` / `cardKind`；每轮工具定义从 1,627 字符降到约 1,100。
 - 2026-11-03 · `lifecycle` 改为从 `dsh-plugin-kit` 导入；本包不再保留 `lib/lifecycle.js` 副本。
 - 2026-11-01 · 0.1.0 · 首个版本：`draw_chart` + `draw_card`，依赖固化，文件 IPC 桥接。

@@ -1,5 +1,9 @@
 # dsh-feiyu-look
 
+> 版本 0.1.0
+
+> **保留说明（2026-11-11）**：这是「外观层」的第一块，有纪念意义，**刻意保留、刻意不加载**。现状：`link:` 依赖在 desktop profile 里，但不在 `dsh.profile.bundles`，`cordis.patch.yml` 里留着一行 `- id: dsh-feiyu-look / disabled: true`（该行是历史残留，市场里点它的开关会写一条 `no loader entry matched` 日志）。要让状态条真正出现，得把它加进 bundles——属 profile 改动，用户手动执行。
+
 大肥鱼的「外观层」第一块：**输入框上方一条只读状态条**。
 
 ```
@@ -36,7 +40,7 @@
 # 1) 备份 profile
 #    package.json / cordis.patch.yml / pnpm-lock.yaml
 # 2) 在 profile package.json 里加依赖与 bundle
-"dsh-feiyu-look": "link:/path/to/dsh-feiyu-look"
+"dsh-feiyu-look": "link:<workspace>/dsh-plugins/dsh-feiyu-look"
 # bundles 数组末尾追加 "dsh-feiyu-look"
 # 3) 重启 DSH（会断当前会话）
 ```
@@ -62,3 +66,7 @@ node test/contract.test.mjs
 ```
 
 期望输出 `OK client bundle + host state contract`，并打印一份真实聚合结果。
+
+## 变更记录
+
+- 2026-11-10：补全 README 的已知限制与触发条件（此前缺段）。

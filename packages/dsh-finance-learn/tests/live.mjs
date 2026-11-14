@@ -2,9 +2,8 @@
  * 实网冒烟：验证插件进程内的真实请求路径（不是宿主 web_fetch 通道）。
  * 结果落文件，因为 Electron node 模式 stdout 会丢。
  */
-import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import fs from 'node:fs'
 import { fetchQuote, fetchKline, fetchIndex, fetchMacro } from '../lib/sources.js'
 
 const out = { at: new Date().toISOString() }
@@ -51,4 +50,4 @@ try {
   out.macro = { ok: false, error: String(e?.message || e) }
 }
 
-fs.writeFileSync(path.join(os.tmpdir(), 'finance-learn-live.json'), JSON.stringify(out, null, 2), 'utf8')
+fs.writeFileSync(path.join(process.cwd(), '_tmp', 'finance-learn-live.json'), JSON.stringify(out, null, 2), 'utf8')

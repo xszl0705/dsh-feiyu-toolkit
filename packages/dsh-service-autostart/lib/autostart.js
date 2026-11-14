@@ -68,7 +68,14 @@ export function readPid(file) {
   }
 }
 
-/** detached + 全隐藏：进程活过宿主，且永远不弹控制台。 */
+/**
+ * detached + 全隐藏：进程活过宿主，且永远不弹控制台。
+ *
+ * 2026-11-14 起 **不再用于 mind-loop**：脱离宿主的进程名与宿主同为
+ * `DeepSeek Harness.exe`，宿主退出后仍存活 → 安装器判定「应用在运行」、
+ * Windows 下运行中的 exe 也无法被覆盖 → 更新卡在「安装并重启」。
+ * 目前只有确实需要脱离宿主的场景才该用；mind-loop 走 launchOwned + 父进程看护。
+ */
 export function launchHidden(file, args, options = {}) {
   const child = spawn(file, args, {
     detached: true,
@@ -116,7 +123,7 @@ export async function probeBridge({ config = {}, probe = portOpen } = {}) {
   return up ? { action: 'up', port: bridge.port } : { action: 'down', port: bridge.port }
 }
 
-export async function ensureMindLoop({ config = {}, state = {}, note = () => {}, launch = launchHidden, exists = fs.existsSync } = {}) {
+export async function ensureMindLoop({ config = {}, state = {}, note = () => {}, launch = launchOwned, exists = fs.existsSync } = {}) {
   const cfg = merge(DEFAULTS, config.autostart || {}).mindLoop
   if (!cfg.enabled) return { action: 'disabled' }
 
@@ -126,11 +133,18 @@ export async function ensureMindLoop({ config = {}, state = {}, note = () => {},
   if (!exists(cfg.script)) return { action: 'missing-script', script: cfg.script }
 
   const node = exists(cfg.node) ? cfg.node : process.execPath
-  const env = node === process.execPath ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : { ...process.env }
+  // DSH_PARENT_PID：mind-loop 用它判断宿主是否还活着。
+  // 不 detached 只解决控制台/进程组问题；Windows 上父进程退出并不会自动杀掉子进程，
+  // 真正让它跟上宿主的是这条看护（宿主没了 → 子进程清 pid 并退出）。
+  const env = {
+    ...process.env,
+    ...(node === process.execPath ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
+    DSH_PARENT_PID: String(process.pid),
+  }
   state.mindLoopTriedAt = Date.now()
   try {
     launch(node, [cfg.script], { cwd: path.dirname(cfg.script), env })
-    note('微心跳没在跑，已静默拉起 mind-loop')
+    note('微心跳没在跑，已静默拉起 mind-loop（随宿主生命周期）')
     return { action: 'launched', pidFile: cfg.pidFile }
   } catch (error) {
     note('拉起微心跳失败：' + String(error?.message || error))

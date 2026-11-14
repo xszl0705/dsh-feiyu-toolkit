@@ -2,10 +2,10 @@
  * 用量画像：从现有日志里算出"调用花在哪"，并如实报告缺哪些字段。
  *
  * 数据源：
- *   ~/.dsh/dafeiyu/stats/*.jsonl        （route / model / ms）
- *   ~/.dsh/dafeiyu/dialogues/*.jsonl    （消息量、渠道、长度分布）
+ *   <user>\.dsh\dafeiyu\stats\*.jsonl        （route / model / ms）
+ *   <user>\.dsh\dafeiyu\dialogues\*.jsonl    （消息量、渠道、长度分布）
  *
- * 用法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tools\analyze-usage.mjs
+ * 用法：ELECTRON_RUN_AS_NODE=1 "<DSH_HOME>/DeepSeek Harness.exe" tools\analyze-usage.mjs
  * 输出：reports/usage-profile.md + reports/usage-profile.json
  */
 

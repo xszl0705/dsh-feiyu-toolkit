@@ -33,7 +33,7 @@ try {
   assert.equal(example.ownerId, '')
   assert.deepEqual(example.groups, [])
   const text = JSON.stringify(example)
-  for (const secret of ['1000000001', '2000000001', '2000000002']) {
+  for (const secret of ['10000001', '10000002', '10000003']) {
     assert.ok(!text.includes(secret), `config.example.json 泄漏 ${secret}`)
   }
 

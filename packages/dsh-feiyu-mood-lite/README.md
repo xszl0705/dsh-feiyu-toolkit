@@ -122,7 +122,7 @@ mood = mood + (baseline - mood) × (1 - e^(-k × hours))
 
 插件侧只做两件事：把五维翻译成性格词写进系统提示词；按 `0.4 + 0.6×外向 + 0.2×神经质` 给出 0.2~1 的“表达强度”，让心情只调节语气强弱、不改性格。端点返回里的 `persona` / `tone` 可以直接核对。
 
-## 端点与工具
+## 工具 · 端点与工具
 
 ```powershell
 curl http://127.0.0.1:<port>/dsh-feiyu-mood/state

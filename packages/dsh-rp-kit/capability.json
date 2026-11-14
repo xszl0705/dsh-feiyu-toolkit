@@ -1,0 +1,50 @@
+{
+  "id": "rp-kit",
+  "package": "dsh-rp-kit",
+  "version": "0.1.2",
+  "intent": "跑团内容评审工坊：收编规则书/设定/大纲/数值，按清单出评审工作包，记问题台账，跑蒙特卡洛数值模拟，出体检报告",
+  "inputs": [
+    "project-name",
+    "content-text",
+    "content-kind",
+    "issue-record",
+    "sim-spec"
+  ],
+  "outputs": [
+    "source-index",
+    "review-packet",
+    "issue-ledger",
+    "sim-result",
+    "review-report"
+  ],
+  "limits": [
+    "不替模型做评审判断：只给清单、源文、历史问题与输出格式",
+    "不改写用户原文，只在 versions/ 留快照",
+    "所有数据落在配置的 root 目录下，不出本机",
+    "rp_sim 只跑用户给定的规则表达式，不猜规则语义",
+    "不注册通用工具名（全部 rp_ 前缀）"
+  ],
+  "failureModes": [
+    {
+      "code": "PROJECT_NOT_FOUND",
+      "meaning": "项目名不存在",
+      "retry": "返回已有项目列表"
+    },
+    {
+      "code": "NO_SOURCE",
+      "meaning": "项目里还没有对应 kind 的源文",
+      "retry": "提示先 rp_open 登记"
+    },
+    {
+      "code": "SIM_SPEC_INVALID",
+      "meaning": "骰式或参数解析失败",
+      "retry": "返回具体哪一项无法解析"
+    }
+  ],
+  "scope": ["owner"],
+  "cost": {
+    "cpu": "low，rp_sim 最多 5 万次试验",
+    "network": "none"
+  },
+  "changedAt": "2026-11-05T21:35:00+08:00"
+}

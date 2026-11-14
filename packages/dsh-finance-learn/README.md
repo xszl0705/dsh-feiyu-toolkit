@@ -1,5 +1,7 @@
 # dsh-finance-learn
 
+> 版本 0.1.0
+
 金融分析 + 经济与社会知识学习。一个插件、一个底座：**采集层**（行情/K线/指数/宏观）+ **知识层**（概念卡 + 间隔重复）。
 
 > 只做数据呈现与教学解释。不推荐个股、不预测点位、不给买卖时点。任何金融输出都带「数据仅供参考，不构成投资建议」。
@@ -51,15 +53,15 @@ P1 换 FSRS-6（`ts-fsrs`）。
 
 ```powershell
 $env:ELECTRON_RUN_AS_NODE = '1'
-& '<DSH 安装目录>\DeepSeek Harness.exe' '<工作区>\dsh-plugins\dsh-finance-learn\tests\run-all.mjs'
+& '<DSH_HOME>/DeepSeek Harness.exe' '<workspace>\dsh-plugins\dsh-finance-learn\tests\run-all.mjs'
 ```
 
-结果同时写到 `<系统临时目录>/finance-learn-test.json`（stdout 会丢）。
+结果同时写到 `<workspace>/_tmp/finance-learn-test.json`（stdout 会丢）。
 
 实网冒烟：
 
 ```powershell
-& '<DSH 安装目录>\DeepSeek Harness.exe' '<工作区>\dsh-plugins\dsh-finance-learn\tests\live.mjs'
+& '<DSH_HOME>/DeepSeek Harness.exe' '<workspace>\dsh-plugins\dsh-finance-learn\tests\live.mjs'
 ```
 
 ## 配置

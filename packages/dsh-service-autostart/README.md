@@ -50,8 +50,8 @@ BrowserSkill 的 daemon 有个特殊约束：`bsk daemon start`（detached）要
 ```json
 "bsk": {
   "enabled": true,
-  "bin": "",
-  "home": "",
+  "bin": "<workspace>\\_thirdparty\\bsk\\bsk.exe",
+  "home": "<workspace>\\_thirdparty\\bsk-home",
   "host": "127.0.0.1",
   "port": 52800,
   "cooldownMs": 600000
@@ -59,6 +59,14 @@ BrowserSkill 的 daemon 有个特殊约束：`bsk daemon start`（detached）要
 ```
 
 `BSK_HOME` 必须与 daemon 和客户端两端一致，否则客户端会去默认的 `~/.bsk` 找 daemon 而找不到。
+
+## 触发条件
+
+- **挂载即检查一次 bsk daemon**：`apply` 注册完 `autostart` 服务后立刻调一次 `ensureBskDaemon()`（没在跑就以 `--foreground` 拉起）；设 `DSH_AUTOSTART_SKIP_STARTUP=1` 可跳过（`index.js:151`）。
+- **总开关**：`config.json` 的 `enabled=false` 时直接不启动，只记一行日志（`index.js:59`）。
+- **其余全靠调用方显式触发**：插件自己不挂定时器，只对外提供 `ctx.get("autostart")` 的 `ensureServices` / `probeBridge` / `ensureMindLoop` / `ensureBskDaemon`，由微心跳与 `dsh-qq-adapter` 在各自轮次里调用（`index.js:99`）。
+- **调用方配置优先**：调用方传 `config.autostart` 时与本地 `config.json` 合并，`bridge` / `mindLoop` / `bsk` 逐字段覆盖（`index.js:65`）。
+- **冷却与销毁**：同一服务冷却期内不重复拉起（微心跳与 bsk 默认各 10 分钟）；`lifecycle` 标记 disposed 后调用直接返回 `{action:"disposed"}`（`index.js:79`）。
 
 ## 行为
 
@@ -80,6 +88,7 @@ qq 优先用这个服务，**拿不到就回退自己那份**（`lib/autostart.j
 
 ## 变更记录
 
+- 2026-11-14 · **mind-loop 改为随宿主生命周期**：`ensureMindLoop` 默认 `launchOwned`（不 detached、不 unref）并通过 `DSH_PARENT_PID` 把宿主 pid 传给子进程；mind-loop 侧新增父进程看护（`DSH_PARENT_CHECK_MS`，默认 30s 一检），宿主退出即清 pid 并退出。原因：detached 残留下来的进程名与宿主同为 `DeepSeek Harness.exe`，宿主退出后仍存活 → 安装器判定「应用在运行」、且 Windows 下运行中的 exe 无法覆盖 → 更新卡在「安装并重启」。实测：伪父 pid 不存在时 4s 内自退且清 pid；父进程存活 5s 仍运行。单测 9/9。`launchHidden` 保留导出但不再用于 mind-loop。改完需重启 DSH 生效。
 - 2026-11-05 · 新增 bsk daemon（BrowserSkill，52800）自愈：`ensureBskDaemon` 端口探测 + `--foreground` 拉起（不 detached，随 DSH 生命周期），config 新增 `bsk` 段；单测 9/9。改完需重启 DSH 生效。
 
 

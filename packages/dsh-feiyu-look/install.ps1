@@ -62,7 +62,7 @@ Write-Host "备份：$bak" -ForegroundColor Green
 # 2) node：多候选，最后一个才查 PATH
 $nodeCandidates = @(
     (Join-Path $env:USERPROFILE '.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'),
-    'E:\dsh\resources\app.asar.unpacked\dsh\node_modules\.bin\node.exe'
+    "$env:DSH_HOME\resources\app.asar.unpacked\dsh\node_modules\.bin\node.exe"
 )
 $node = $nodeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $node) {

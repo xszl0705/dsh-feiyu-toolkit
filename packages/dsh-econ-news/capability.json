@@ -1,0 +1,25 @@
+{
+  "id": "econ-news",
+  "version": "0.1.0",
+  "changedAt": "2026-11-14",
+  "intent": "按日采集 IMF WEO / WSJ / FT / 中美经济部门政策 / 经济学研究成果，原文落盘后生成一篇可溯源简报，供给研学模式做宏观与政策研读。",
+  "inputs": ["date", "sources", "urls", "id", "zone", "offset", "limit"],
+  "outputs": ["items.jsonl", "manifest.json", "brief.md", "brief.sources.md", "原文文本"],
+  "limits": [
+    "只在研学模式（agent preset research）可见，标准会话不可见",
+    "FT 域名在本机两条通道均不可达，默认记缺口，不伪造内容",
+    "WSJ 只有 RSS 摘要（80-165 字），wsj.com 正文不可达，正文状态固定为 summary",
+    "IMF 主站仅宿主 web 通道可取，后台无凭据时降级为 DBnomics 数据",
+    "商务部与中国政府网要闻的列表页由脚本渲染，静态抓取无链接，默认在 disabledSources 里",
+    "所有数据落 dataDir（默认 <workspace>/econ-news），不写工作区之外",
+    "不做投资建议、不预测点位"
+  ],
+  "failureModes": [
+    { "code": "ALL_CHANNELS_FAILED", "meaning": "该源所有通道都失败", "retry": "记入 manifest.sources[].error 与 gaps，不重试" },
+    { "code": "BLOCKED", "meaning": "403/验证码/登录墙", "retry": "30 分钟内不再尝试同一域名+通道" },
+    { "code": "EXTRACT_EMPTY", "meaning": "正文选择器与兜底都没抓到 ≥200 字", "retry": "保留 HTML 原文，bodyStatus=failed" },
+    { "code": "BUDGET_EXCEEDED", "meaning": "单日采集超过 dailyBudgetMs", "retry": "停止新请求，剩余源写进 manifest.skipped" },
+    { "code": "HOST_WEB_UNAVAILABLE", "meaning": "宿主 ctx.web 服务不在（无会话或无凭据）", "retry": "IMF 段降级到 DBnomics 数据 + 标注缺口" }
+  ],
+  "scope": ["owner"]
+}

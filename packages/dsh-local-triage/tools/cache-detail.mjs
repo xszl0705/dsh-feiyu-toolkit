@@ -5,7 +5,7 @@
  *   A. 结构问题 —— 命中率一直低，说明前缀每次都变
  *   B. 流量形态 —— 大量一次性调用，本来就没有可复用的前缀
  *
- * 用法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tools\cache-detail.mjs
+ * 用法：ELECTRON_RUN_AS_NODE=1 "<DSH_HOME>/DeepSeek Harness.exe" tools\cache-detail.mjs
  * 输出：reports/cache-detail.md
  */
 

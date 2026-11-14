@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "endpoint": "http://127.0.0.1:11435",
+  "model": "qwen3.8-27b",
+  "confidence": 0.75,
+  "capModelLocal": true,
+  "decisionStyle": "ternary",
+  "timeoutMs": 5000,
+  "keepAlive": "30m",
+  "numCtx": 1024,
+  "numPredict": 64,
+  "circuit": {
+    "failThreshold": 3,
+    "openMs": 60000
+  },
+  "statsFile": "",
+  "spillDir": "",
+  "compress": {
+    "capChars": 4000,
+    "pageSize": 20,
+    "spillBytes": 12000,
+    "hunkContext": 3
+  },
+  "rules": {
+    "maxTurns": 6,
+    "maxChars": 1200
+  }
+}

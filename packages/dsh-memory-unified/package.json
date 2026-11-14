@@ -1,6 +1,6 @@
 {
   "name": "dsh-memory-unified",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "跨会话长期记忆（工具优先版）：SQLite + FTS5 存储，写入去重、失效语义、拒答检索、软删除、体检与导入导出，不接管上下文；Node 无 node:sqlite 时自动回退 JSON。",
   "type": "module",
   "main": "index.js",
@@ -10,7 +10,9 @@
     "scripts",
     "config.json",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "capability.json",
+    "config.example.json"
   ],
   "dsh": {
     "bundle": {
@@ -27,12 +29,11 @@
     "node": ">=20"
   },
   "license": "MIT",
-  "peerDependencies": {
-    "dsh-plugin-kit": ">=0.1.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git",
+    "directory": "packages/dsh-memory-unified"
   },
-  "peerDependenciesMeta": {
-    "dsh-plugin-kit": {
-      "optional": true
-    }
-  }
+  "author": "xszl0705",
+  "homepage": "https://github.com/xszl0705/dsh-feiyu-toolkit/tree/main/packages/dsh-memory-unified"
 }

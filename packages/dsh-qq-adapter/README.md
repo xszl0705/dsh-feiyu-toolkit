@@ -138,9 +138,18 @@ QQ 收到的图（含 GIF）、客户端拖进来的图都会自动落库，分�
 - 开关：`config.triggerShadow === false` 关闭；落盘异常一律吞掉，不影响回复。
 - 先留在 qq-adapter 内部，稳定后再抽独立包 `dsh-trigger`（守住「一次只加一个必装插件」）。
 
+## 已知限制
+
+- 不能主动加好友或拉群。
+- 同一条消息最多发送一次；`unknown` 只能人工对账（`qq(action=reconcile)`），裁定后不自动重发，补发需手动 `qq(send)`。
+- 发图/发语音/发文件只接本机绝对路径；图片与语音单条 ≤20MB。
+- 语音不自己编码：插件只发 `record` 段（wav/amr），由 SnowLuma 侧转 SILK；SSVO 网关需另起（`uni-voice/run.ps1 start`，端口 9882），网关不可用时回退 Windows SAPI，音质偏机械。
+- 自动回复仍只发文字，≤ `maxReplyChars`；图片/语音/文件只走 `qq(action=send)` 手动通道。
+
 ## 变更记录
 
 
+- 2026-11-14 · `lib/autostart.js` 同步 mind-loop 的生命周期改动：`ensureMindLoop` 默认 `launchOwned`（不 detached、不 unref）并传 `DSH_PARENT_PID`，由子进程自己看护宿主；`launchHidden` 保留导出但不再用于 mind-loop。原因：detached 残留的同名 `DeepSeek Harness.exe` 会挡住更新安装（安装器判「应用在运行」+ Windows 下 exe 被占用）。实测伪父 pid 不存在 4s 内自退、父存活 5s 仍运行。与 `dsh-service-autostart` 保持字节同源。改完需重启 DSH 生效。
 - 2026-11-04 · 新增 Trigger 影子模式（阶段 1.2）：`lib/trigger.js` 产出统一 Trigger + 纯函数 fast path，fast 与现网 `shouldAnswer` 结论一起落 `~/.dsh/dafeiyu/trigger-shadow.jsonl`（含 agree），只记不执行；`summarizeDispositions()` 供一周后出数；`tests/trigger.test.mjs` 6/6。
 
 

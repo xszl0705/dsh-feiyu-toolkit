@@ -1,5 +1,7 @@
 # dsh-pet-sync
 
+> 版本 0.2.0
+
 桌宠 / 悬浮窗的**生命周期**插件：只管「起没起、怎么起、退出时停掉」，不画界面。
 
 ## 工具
@@ -79,6 +81,13 @@ DSH → ~/.dsh/pet/inbox.jsonl（追加一条 {id,type:"say",exp,payload}）→ 
 - 不超过 60 字，长了会被截
 
 这样桌宠不只是「显示我状态的窗口」，也是我在桌面上的嘴。
+
+## 已知限制
+
+- 桌宠缺失时如实报告未运行，不伪造进程状态。
+- 不改桌宠的行为规则。
+- 工具已合并为单入口 `pet(action)`，旧 `pet_status` / `pet_start` / `pet_stop` / `pet_form` / `pet_say` 不再注册。
+- `stop` 会按 pid 复核：taskkill 后仍有存活进程时返回 `ok:false`，且不写 `running:false`。
 
 ## 变更记录
 

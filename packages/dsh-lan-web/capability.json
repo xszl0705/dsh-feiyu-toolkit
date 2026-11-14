@@ -1,0 +1,54 @@
+{
+  "name": "dsh-lan-web",
+  "version": "0.1.1",
+  "intent": "在宿主进程内起一个局域网网关，把只绑 127.0.0.1 的 DSH web 界面开放给手机/平板浏览器，复用同一个会话，并给非安全上下文补 crypto.randomUUID。",
+  "tools": [
+    {
+      "name": "lan_web",
+      "action": [
+        "status",
+        "start",
+        "stop"
+      ],
+      "intent": "查看/启停局域网入口，拿带口令的访问地址"
+    }
+  ],
+  "limits": [
+    "只暴露一个固定端口（默认 3099）到本机选出的一个具体局域网址；不绑 0.0.0.0。",
+    "网关口令存 plugins/dsh-lan-web/token.txt，与宿主 launchToken 无关；口令不对时返回 401 提示页。",
+    "宿主 launchToken 每次启动变化，网关在启动时用它换 cookie 并缓存；宿主重启后网关需要重新启动（插件随宿主启动自动重来一次）。",
+    "端口被占用时 start 失败并回写 lastError，不重试其它端口。",
+    "Windows 防火墙未放行时手机侧打不开，插件不做自动放行（那要管理员权限）。",
+    "只转发 HTTP 与 WebSocket 升级；不做 TLS，手机上走明文 HTTP。",
+    "转发前会把 Origin / Referer 改写成后端自己的 origin：宿主对 /api 做同源校验，局域网 origin 一律 403。这不等于放宽宿主的校验——手机仍需网关口令才能进来。",
+    "访问日志落 plugins/dsh-lan-web/access.log：每个 HTTP 请求与 WS 生命周期一行，含对端 IP、UA、路径、状态码、耗时；超过 2MB 轮转一份 .1，只留最近两代。",
+    "转发 HTML 时强制 cache-control: no-store：宿主重启会换端口与 boot 数据，缓存住的旧页面会让手机对着死连接干等。"
+  ],
+  "failureModes": [
+    "webServer/connection 服务 120s 内没挂上 → autoStart 放弃，lan_web 报 lastError，可手动 start 重试。",
+    "换 cookie 失败（宿主 401）→ 抛错并记录，网关不启动，不静默降级成无认证转发。",
+    "上游断开 → 返回 502 文本，不吞掉异常。",
+    "HTML 注入只在 content-type 含 text/html 时做；其它响应流式透传。",
+    "WS 升级后后端 10s 不响应 → 主动断开两端并记 ws-timeout，交给浏览器重连，不留悬挂 socket。"
+  ],
+  "id": "lan-web",
+  "package": "dsh-lan-web",
+  "inputs": [
+    "action"
+  ],
+  "outputs": [
+    "status",
+    "url",
+    "port",
+    "lastError"
+  ],
+  "scope": [
+    "owner"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "localhost",
+    "disk": "access.log 轮转两代"
+  },
+  "changedAt": "2026-11-14T20:30:00+08:00"
+}

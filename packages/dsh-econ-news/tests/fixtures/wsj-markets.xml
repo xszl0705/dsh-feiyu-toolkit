@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>WSJ.com: Markets</title>
+    <link>https://www.wsj.com/news/markets</link>
+    <description>Markets news from the Wall Street Journal.</description>
+    <language>en-us</language>
+    <item>
+      <title>Stocks Sink in Broad AI Rout Sparked by China's DeepSeek</title>
+      <link>https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main</link>
+      <description><![CDATA[U.S. stocks were mostly lower, with the Nasdaq leading declines as makers of AI infrastructure suffered steep falls, many in the double digits. Nvidia was down 16%.]]></description>
+      <pubDate>Mon, 27 Jan 2025 13:18:51 -0500</pubDate>
+      <guid isPermaLink="false">WP-WSJ-0001598794</guid>
+    </item>
+    <item>
+      <title>Comex Gold, Silver Settle Lower</title>
+      <link>https://www.wsj.com/articles/gold-edges-lower-feds-rate-decision-in-focus-09dbfceb?mod=rss_markets_main</link>
+      <description><![CDATA[Gold and silver futures settled lower as traders positioned ahead of the Federal Reserve's rate decision.]]></description>
+      <pubDate>Mon, 27 Jan 2025 14:02:00 -0500</pubDate>
+      <guid isPermaLink="false">WP-WSJ-0001598795</guid>
+    </item>
+    <item>
+      <title>DeepSeek Won't Sink U.S. AI Titans</title>
+      <link>https://www.wsj.com/articles/deepseek-us-ai-stocks-nvidia-broadcom-6cdfae81?mod=rss_markets_main</link>
+      <description><![CDATA[The market reaction to DeepSeek was severe, but the economics of AI infrastructure spending remain intact.]]></description>
+      <pubDate>Mon, 27 Jan 2025 15:30:00 -0500</pubDate>
+      <guid isPermaLink="false">WP-WSJ-0001598796</guid>
+    </item>
+  </channel>
+</rss>

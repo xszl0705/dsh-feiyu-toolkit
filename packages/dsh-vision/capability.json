@@ -1,10 +1,17 @@
 {
   "id": "vision",
   "package": "dsh-vision",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "intent": "看图：把图片转成文字描述，供模型在拿不到原生视觉时使用",
-  "inputs": ["image-url", "image-bytes", "question"],
-  "outputs": ["description", "usage"],
+  "inputs": [
+    "image-url",
+    "image-bytes",
+    "question"
+  ],
+  "outputs": [
+    "description",
+    "usage"
+  ],
   "limits": [
     "只描述看到的，不推测图片外的事",
     "远程图只取公网地址，内网/回环拒绝",
@@ -15,12 +22,36 @@
     "认证优先用 vision.apiKey / DEEPSEEK_API_KEY（Bearer）；未配置时退回宿主账号 token，但该 token 直连 api.deepseek.com 会 401（invalid dsh token），此时错误信息会明确指出要配 key"
   ],
   "failureModes": [
-    { "code": "VISION_UNAVAILABLE", "meaning": "视觉模型服务不可用", "retry": "如实返回错误" },
-    { "code": "VISION_UNAUTHORIZED", "meaning": "401：账号 token 不能直连 DeepSeek，或 API key 无效", "retry": "配 vision.apiKey / DEEPSEEK_API_KEY 后重试" },
-    { "code": "NON_PUBLIC_ADDRESS", "meaning": "图片地址指向内网/回环", "retry": "拒绝下载" },
-    { "code": "IMAGE_TOO_LARGE", "meaning": "图片超过大小上限", "retry": "拒绝，不截断" }
+    {
+      "code": "VISION_UNAVAILABLE",
+      "meaning": "视觉模型服务不可用",
+      "retry": "如实返回错误"
+    },
+    {
+      "code": "VISION_UNAUTHORIZED",
+      "meaning": "401：账号 token 不能直连 DeepSeek，或 API key 无效",
+      "retry": "配 vision.apiKey / DEEPSEEK_API_KEY 后重试"
+    },
+    {
+      "code": "NON_PUBLIC_ADDRESS",
+      "meaning": "图片地址指向内网/回环",
+      "retry": "拒绝下载"
+    },
+    {
+      "code": "IMAGE_TOO_LARGE",
+      "meaning": "图片超过大小上限",
+      "retry": "拒绝，不截断"
+    }
   ],
-  "scope": ["owner", "group", "private"],
-  "cost": { "cpu": "low", "network": "outbound", "tokens": "variable" },
-  "changedAt": "2026-11-04T20:35:00+08:00"
+  "scope": [
+    "owner",
+    "group",
+    "private"
+  ],
+  "cost": {
+    "cpu": "low",
+    "network": "outbound",
+    "tokens": "variable"
+  },
+  "changedAt": "2026-11-14"
 }

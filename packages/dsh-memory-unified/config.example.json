@@ -1,0 +1,8 @@
+{
+  "storeDir": "",
+  "store": "sqlite",
+  "autoRecall": false,
+  "recallLimit": 3,
+  "maxItemsPerFolder": 200,
+  "dedupe": true
+}

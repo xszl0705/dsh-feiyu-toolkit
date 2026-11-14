@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "bridge": {
+    "host": "127.0.0.1",
+    "port": 3001
+  },
+  "mindLoop": {
+    "enabled": true,
+    "script": "",
+    "node": "",
+    "pidFile": "",
+    "cooldownMs": 600000
+  },
+  "bsk": {
+    "enabled": true,
+    "bin": "",
+    "home": "",
+    "host": "127.0.0.1",
+    "port": 52800,
+    "cooldownMs": 600000
+  }
+}

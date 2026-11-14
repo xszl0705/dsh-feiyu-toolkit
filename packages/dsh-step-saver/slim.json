@@ -1,0 +1,158 @@
+{
+  "enabled": true,
+  "note": "enabled 控制一般模式瘦身；presetPolicies 的 strict 专用模式独立生效，不接受 toolbox 扩展。research 只开放 web、evidence、经济新闻（econ_news_*）与四个助手工具（问答/出文件/待办/记日志）。修改后重启宿主。",
+  "excludePresets": [
+    "roleplay",
+    "roleplay-web",
+    "roleplay-gm",
+    "redteam"
+  ],
+  "keep": [
+    "toolbox",
+    "rp_card",
+    "rp_memory",
+    "pwsh",
+    "run_node",
+    "ls_tree",
+    "read",
+    "edit",
+    "write",
+    "glob",
+    "grep",
+    "file_outline",
+    "smart_grep",
+    "read_image",
+    "working_directory",
+    "job_output",
+    "job_list",
+    "job_kill",
+    "memory",
+    "memory_log",
+    "memory_note",
+    "memory_read",
+    "memory_recall",
+    "memory_procedure",
+    "memory_procedure_list",
+    "memory_user",
+    "self",
+    "diary",
+    "chatlog",
+    "present",
+    "ask_user_question",
+    "todo_write",
+    "skill",
+    "web_search",
+    "web_fetch",
+    "subagent",
+    "list_agents",
+    "send_message",
+    "pet",
+    "qq",
+    "sticker",
+    "lan_web",
+    "playground",
+    "budget"
+  ],
+  "groups": {
+    "media": [
+      "comfy",
+      "draw",
+      "vision_describe",
+      "screenshot"
+    ],
+    "system": [
+      "naga",
+      "plugin_manager",
+      "purge_status",
+      "purge_apply",
+      "purge_revert"
+    ],
+    "sched": [
+      "create_goal",
+      "get_goal",
+      "update_goal",
+      "schedule_list",
+      "schedule_create",
+      "schedule_edit",
+      "schedule_view"
+    ],
+    "cal": [
+      "calendar_add",
+      "calendar_list",
+      "calendar_done",
+      "calendar_remove",
+      "feiyu_mood_status"
+    ],
+    "rp": [
+      "rp_card",
+      "rp_memory",
+      "rp_open",
+      "rp_pack",
+      "rp_issue",
+      "rp_report",
+      "rp_sim",
+      "rp_outline",
+      "gm_world",
+      "gm_scene",
+      "gm_post",
+      "gm_beam",
+      "gm_beat",
+      "gm_check"
+    ],
+    "fin": [
+      "fin_quote",
+      "fin_kline",
+      "fin_index",
+      "learn_card",
+      "learn_review"
+    ],
+    "econ": [
+      "econ_news_collect",
+      "econ_news_brief",
+      "econ_news_list",
+      "econ_news_read",
+      "econ_news_status"
+    ],
+    "mem": [
+      "memory_status",
+      "memory_rules",
+      "memory_consolidate",
+      "memory_expand",
+      "memory_trace",
+      "memory_maintain",
+      "memory_external",
+      "memory_reflect"
+    ],
+    "work": [
+      "workflow",
+      "subagent_fork",
+      "list_subagent_models",
+      "interrupt_agent",
+      "exit_plan_mode",
+      "load_workspace_dependencies"
+    ]
+  },
+  "presetPolicies": {
+    "research": {
+      "strict": true,
+      "keep": [
+        "web_search",
+        "web_fetch",
+        "ask_user_question",
+        "present",
+        "todo_write",
+        "memory_log",
+        "ev_fetch",
+        "ev_extract",
+        "ev_claim",
+        "ev_search",
+        "ev_verify",
+        "econ_news_collect",
+        "econ_news_brief",
+        "econ_news_list",
+        "econ_news_read",
+        "econ_news_status"
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# dsh-rp-kit —— DSH bundle patch
+# 纯 Host 插件行；六个 rp_* 工具由 ctx.effect 托管，禁用即卸载。
+- insert:
+    - id: dsh-rp-kit
+      name: dsh-rp-kit

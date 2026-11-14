@@ -1,0 +1,7 @@
+{
+  "root": "",
+  "maxPacketChars": 24000,
+  "maxSourceSlicesPerPacket": 6,
+  "simTrialLimit": 50000,
+  "reportDir": "reports"
+}

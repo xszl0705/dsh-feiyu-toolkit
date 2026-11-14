@@ -1,0 +1,22 @@
+{
+  "code": 20000,
+  "message": "OK",
+  "data": {
+    "items": [
+      {
+        "id": 4800001,
+        "content_text": "知情人士透露，美国总统特朗普近日向高级顾问表示，如果美国未受到来自伊朗或也门胡塞武装的任何新挑衅，他可能会暂缓对伊朗采取军事打击。（路透）",
+        "display_time": 1794567890,
+        "global_channel_name": "国际",
+        "uri": "https://wallstreetcn.com/livenews/4800001"
+      },
+      {
+        "id": 4800002,
+        "content_text": "高盛集团预计，尽管人工智能领域的不确定性可能加剧市场波动，但企业盈利增长仍将推动亚洲股市上行，将 MSCI 亚太（除日本）指数目标上调 3%。",
+        "display_time": 1794567800,
+        "global_channel_name": "国际",
+        "uri": "https://wallstreetcn.com/livenews/4800002"
+      }
+    ]
+  }
+}

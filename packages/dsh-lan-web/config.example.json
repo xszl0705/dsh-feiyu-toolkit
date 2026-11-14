@@ -1,0 +1,6 @@
+{
+  "lanIp": "auto",
+  "lanPort": 3099,
+  "autoStart": true,
+  "bootTimeoutMs": 120000
+}

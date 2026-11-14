@@ -1,7 +1,7 @@
 {
   "id": "pet-diary",
   "package": "dsh-pet-diary",
-  "version": "0.3.0",
+  "version": "0.2.3",
   "intent": "日常日记、隐私日记、工作日志与例行任务",
   "inputs": [
     "text",
@@ -29,6 +29,31 @@
       "code": "ROUTINE_MISSED",
       "meaning": "定时点错过后不补跑",
       "retry": "等下一个触发点"
+    },
+    {
+      "code": "CONTENT_EMPTY",
+      "meaning": "日记内容为空",
+      "retry": "拒绝写入"
+    },
+    {
+      "code": "CONTENT_TOO_LONG",
+      "meaning": "单条超过上限字数",
+      "retry": "拒绝并提示拆分，不静默截断"
+    },
+    {
+      "code": "DATE_INVALID",
+      "meaning": "date 不是 YYYY-MM-DD",
+      "retry": "拒绝，要求改格式"
+    },
+    {
+      "code": "LLM_EMPTY",
+      "meaning": "模型没有返回内容",
+      "retry": "不写入，保留原文草稿"
+    },
+    {
+      "code": "LLM_UNAVAILABLE",
+      "meaning": "宿主没有 llm 服务",
+      "retry": "直接存原文，不做润色"
     }
   ],
   "scope": [
@@ -38,5 +63,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-01T23:55:00+08:00"
+  "changedAt": "2026-11-14"
 }

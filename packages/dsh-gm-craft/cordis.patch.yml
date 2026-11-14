@@ -1,0 +1,5 @@
+# dsh-gm-craft —— DSH bundle patch
+# 纯 Host 插件行；六个 gm_* 工具由 ctx.effect 托管，禁用即卸载。
+- insert:
+    - id: dsh-gm-craft
+      name: dsh-gm-craft

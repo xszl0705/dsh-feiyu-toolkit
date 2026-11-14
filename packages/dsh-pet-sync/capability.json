@@ -1,7 +1,7 @@
 {
   "id": "pet-sync",
   "package": "dsh-pet-sync",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "intent": "桌宠进程管理：查看状态、启动、停止、切换形态",
   "inputs": [
     "action"
@@ -26,6 +26,16 @@
       "code": "PET_SPAWN_FAILED",
       "meaning": "进程拉起失败",
       "retry": "退避重试"
+    },
+    {
+      "code": "PET_INSTANCE_STUCK",
+      "meaning": "实例卡住（单实例名被占，状态不再滚动）",
+      "retry": "提示手动重启，不自动杀进程"
+    },
+    {
+      "code": "STATE_WRITE_FAILED",
+      "meaning": "状态文件写入失败（被占用 / 权限）",
+      "retry": "保留内存态，下个周期重写"
     }
   ],
   "scope": [
@@ -35,5 +45,5 @@
     "cpu": "low",
     "network": "none"
   },
-  "changedAt": "2026-11-01T17:20:00+08:00"
+  "changedAt": "2026-11-14"
 }

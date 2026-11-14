@@ -1,5 +1,7 @@
 # dsh-screenshot
 
+> 版本 0.1.1
+
 让模型自己看屏幕：**全屏截图 → 存到工作区 → 直接读图**，省得你手动截图上传。
 
 ## 工具
@@ -23,7 +25,7 @@
 
 ```json
 {
-  "outDir": "",
+  "outDir": "<workspace>\\_screens",
   "maxWidth": 1400,
   "keepFiles": 80
 }

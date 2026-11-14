@@ -1,17 +1,21 @@
 /**
- * 工具定义：draw_chart（matplotlib）+ draw_card（Pillow）。
+ * 工具定义：draw（单入口，kind=chart 走 matplotlib，kind=card 走 Pillow）。
  *
  * 硬约定（来自 docs/绘图落地实施方案-2026-11-01.md）：
  *   1. 只回路径，不回 base64，不把图片内容塞进上下文。
  *   2. 失败要有明确 reason，不产出空图。
  *   3. 凡是图里要出现准确数字/文字的，必须走这条线（生成模型会改数字）。
+ *
+ * 2026-11-08：draw_chart / draw_card 两个工具合并为 draw，参数用 kind 分派；
+ * 目的减少每轮工具定义体积（2026-11-08 工具使用率报告：两工具合计 1,627 字符）。
  */
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { runPython } from './bridge.js'
 
-const KINDS = ['line', 'bar', 'pie', 'scatter', 'dual']
+const CHART_KINDS = ['line', 'bar', 'pie', 'scatter', 'dual']
+const CARD_KINDS = ['card', 'rows']
 
 function slug(text, fallback = 'draw') {
   const s = String(text || '')
@@ -54,28 +58,84 @@ function describe(r) {
   return `已生成：${r.path}\n尺寸 ${r.width}×${r.height}，${kb}KB，耗时 ${r.elapsedMs}ms\n在正文里用 ![](路径) 引用它。`
 }
 
+/** 画数据图：保留旧 draw_chart 的全部行为，参数改名为 chartKind。 */
+async function runChart(config, args) {
+  const kind = CHART_KINDS.includes(String(args?.chartKind || '').toLowerCase())
+    ? String(args.chartKind).toLowerCase()
+    : 'line'
+  const series = Array.isArray(args?.series) ? args.series : []
+  const labels = Array.isArray(args?.labels) ? args.labels.map(String) : []
+  if (!series.length) {
+    return { ok: false, reason: 'NO_DATA', error: 'series 为空，没有可画的数据' }
+  }
+  const outPath = resolveOut(config, args?.outPath, `chart-${slug(args?.title)}`)
+  return runPython(
+    'chart.py',
+    {
+      kind,
+      labels,
+      series: series.map((s) => ({
+        name: s?.name ? String(s.name) : '',
+        data: Array.isArray(s?.data) ? s.data.map((v) => (v === null || v === '' ? null : Number(v))) : [],
+      })),
+      title: args?.title ? String(args.title) : '',
+      xlabel: args?.xlabel ? String(args.xlabel) : '',
+      ylabel: args?.ylabel ? String(args.ylabel) : '',
+      outPath,
+    },
+    { pythonPath: config.pythonPath, timeoutMs: 35000 },
+  )
+}
+
+/** 排版卡片：保留旧 draw_card 的全部行为，参数改名为 cardKind。 */
+async function runCard(config, args) {
+  const kind = String(args?.cardKind || 'card').toLowerCase() === 'rows' ? 'rows' : 'card'
+  const rows = Array.isArray(args?.rows) ? args.rows : []
+  if (kind === 'rows' && !rows.length) {
+    return { ok: false, reason: 'NO_DATA', error: 'rows 模式需要非空 rows' }
+  }
+  if (kind === 'card' && !args?.title && !args?.body) {
+    return { ok: false, reason: 'NO_DATA', error: 'card 模式需要 title 或 body' }
+  }
+  const outPath = resolveOut(config, args?.outPath, `card-${slug(args?.title)}`)
+  const width = Math.min(Math.max(Number(args?.width) || 900, 480), 1600)
+  return runPython(
+    'card.py',
+    {
+      kind,
+      title: args?.title ? String(args.title) : '',
+      body: args?.body ? String(args.body) : '',
+      rows: rows.map((r) => (Array.isArray(r) ? r.map(String) : [String(r), ''])),
+      footer: args?.footer ? String(args.footer) : '',
+      width,
+      outPath,
+    },
+    { pythonPath: config.pythonPath, timeoutMs: 20000 },
+  )
+}
+
 export function createTools(config = {}) {
-  /** ---------- draw_chart ---------- */
-  const drawChart = {
-    name: 'draw_chart',
+  const draw = {
+    name: 'draw',
     description:
-      '用 matplotlib 画数据图（折线/柱状/饼图/散点/双轴），落盘成 PNG 并返回路径。适合任何图里必须出现**准确数字或文字**的场景：趋势、对比、占比、双指标对照。不画插画，不做艺术风格。',
+      '出图并落盘成 PNG、返回路径。kind=chart：matplotlib 数据图（折线/柱/饼/散点/双轴），图里要出现准确数字或文字时用它；kind=card：Pillow 排版卡片（段落/键值列表），不依赖 GPU 与网络。',
     parameters: {
       type: 'object',
       properties: {
         kind: {
           type: 'string',
-          enum: KINDS,
-          description: '图表类型。dual=双轴（第 1 个系列柱状、第 2 个折线）。默认 line',
+          enum: ['chart', 'card'],
+          description: 'chart=数据图（默认），card=排版卡片',
         },
-        labels: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'X 轴标签，如 ["一月","二月","三月"]',
+        chartKind: {
+          type: 'string',
+          enum: CHART_KINDS,
+          description: 'kind=chart 时的图型。dual=双轴（第 1 系列柱状、第 2 系列折线）。默认 line',
         },
+        labels: { type: 'array', items: { type: 'string' }, description: 'chart：X 轴标签' },
         series: {
           type: 'array',
-          description: '数据系列，如 [{"name":"调用次数","data":[40,31,52]}]',
+          description: 'chart：数据系列，如 [{"name":"调用次数","data":[40,31,52]}]',
           items: {
             type: 'object',
             properties: {
@@ -85,12 +145,25 @@ export function createTools(config = {}) {
             required: ['data'],
           },
         },
+        xlabel: { type: 'string', description: 'chart：X 轴说明' },
+        ylabel: { type: 'string', description: 'chart：Y 轴说明' },
+        cardKind: {
+          type: 'string',
+          enum: CARD_KINDS,
+          description: 'kind=card 时的形态：card=段落卡片（默认），rows=键值列表',
+        },
         title: { type: 'string', description: '标题' },
-        xlabel: { type: 'string', description: 'X 轴说明' },
-        ylabel: { type: 'string', description: 'Y 轴说明' },
-        outPath: { type: 'string', description: '输出路径（可选，默认自动生成在工作区 out/draw 下）' },
+        body: { type: 'string', description: 'card：正文，支持 \\n 换行' },
+        rows: {
+          type: 'array',
+          description: 'card：键值对列表，如 [["底模","anything-v5"],["显存","8187MB"]]',
+          items: { type: 'array', items: { type: 'string' } },
+        },
+        footer: { type: 'string', description: 'card：页脚小字' },
+        width: { type: 'number', description: 'card：图片宽度，默认 900' },
+        outPath: { type: 'string', description: '输出路径（可选，必须落在输出目录内；默认自动生成）' },
       },
-      required: ['series'],
+      required: [],
     },
     output: {
       schema: {
@@ -111,104 +184,10 @@ export function createTools(config = {}) {
     timeoutMs: 40000,
     isConcurrencySafe: () => true,
     execute: async (args) => {
-      const kind = KINDS.includes(String(args?.kind || '').toLowerCase())
-        ? String(args.kind).toLowerCase()
-        : 'line'
-      const series = Array.isArray(args?.series) ? args.series : []
-      const labels = Array.isArray(args?.labels) ? args.labels.map(String) : []
-      if (!series.length) {
-        return { ok: false, reason: 'NO_DATA', error: 'series 为空，没有可画的数据' }
-      }
-      const outPath = resolveOut(config, args?.outPath, `chart-${slug(args?.title)}`)
-      return runPython(
-        'chart.py',
-        {
-          kind,
-          labels,
-          series: series.map((s) => ({
-            name: s?.name ? String(s.name) : '',
-            data: Array.isArray(s?.data) ? s.data.map((v) => (v === null || v === '' ? null : Number(v))) : [],
-          })),
-          title: args?.title ? String(args.title) : '',
-          xlabel: args?.xlabel ? String(args.xlabel) : '',
-          ylabel: args?.ylabel ? String(args.ylabel) : '',
-          outPath,
-        },
-        { pythonPath: config.pythonPath, timeoutMs: 35000 },
-      )
+      const kind = String(args?.kind || 'chart').toLowerCase() === 'card' ? 'card' : 'chart'
+      return kind === 'card' ? runCard(config, args) : runChart(config, args)
     },
   }
 
-  /** ---------- draw_card ---------- */
-  const drawCard = {
-    name: 'draw_card',
-    description:
-      '用 Pillow 把文字排成一张卡片图（渐变底 + 白卡 + 中文自动换行）。两种形态：card=标题+正文段落；rows=键值列表（适合体检报告、榜单、对比清单）。落盘返回路径。不依赖 GPU 与网络。',
-    parameters: {
-      type: 'object',
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['card', 'rows'],
-          description: 'card=段落卡片（默认），rows=键值列表',
-        },
-        title: { type: 'string', description: '标题' },
-        body: { type: 'string', description: '正文（card 模式用，支持 \\n 换行）' },
-        rows: {
-          type: 'array',
-          description: '键值对列表（rows 模式用），如 [["底模","anything-v5"],["显存","8187MB"]]',
-          items: { type: 'array', items: { type: 'string' } },
-        },
-        footer: { type: 'string', description: '页脚小字' },
-        width: { type: 'number', description: '图片宽度，默认 900' },
-        outPath: { type: 'string', description: '输出路径（可选）' },
-      },
-      required: [],
-    },
-    output: {
-      schema: {
-        type: 'object',
-        properties: {
-          ok: { type: 'boolean' },
-          path: { type: 'string' },
-          width: { type: 'number' },
-          height: { type: 'number' },
-          bytes: { type: 'number' },
-          elapsedMs: { type: 'number' },
-          reason: { type: 'string' },
-          error: { type: 'string' },
-        },
-      },
-      render: (_args, value) => [{ type: 'text', text: describe(value) }],
-    },
-    timeoutMs: 25000,
-    isConcurrencySafe: () => true,
-    execute: async (args) => {
-      const kind = String(args?.kind || 'card').toLowerCase() === 'rows' ? 'rows' : 'card'
-      const rows = Array.isArray(args?.rows) ? args.rows : []
-      if (kind === 'rows' && !rows.length) {
-        return { ok: false, reason: 'NO_DATA', error: 'rows 模式需要非空 rows' }
-      }
-      if (kind === 'card' && !args?.title && !args?.body) {
-        return { ok: false, reason: 'NO_DATA', error: 'card 模式需要 title 或 body' }
-      }
-      const outPath = resolveOut(config, args?.outPath, `card-${slug(args?.title)}`)
-      const width = Math.min(Math.max(Number(args?.width) || 900, 480), 1600)
-      return runPython(
-        'card.py',
-        {
-          kind,
-          title: args?.title ? String(args.title) : '',
-          body: args?.body ? String(args.body) : '',
-          rows: rows.map((r) => (Array.isArray(r) ? r.map(String) : [String(r), ''])),
-          footer: args?.footer ? String(args.footer) : '',
-          width,
-          outPath,
-        },
-        { pythonPath: config.pythonPath, timeoutMs: 20000 },
-      )
-    },
-  }
-
-  return [drawChart, drawCard]
+  return [draw]
 }

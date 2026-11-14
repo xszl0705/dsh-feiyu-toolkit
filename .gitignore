@@ -30,3 +30,17 @@ Thumbs.db
 # 本地产物与备份（2026-11-07 发布前补充）
 packages/dsh-local-triage/reports/
 *.bak-*
+
+# 本地产物与凭据（2026-11-14 发布前补充）
+**/data/
+**/_out/
+**/_tmp/
+**/_debug/
+**/reports/
+**/load.log
+**/*.log
+token.txt
+*.pid
+*.snapshot
+*.bak
+*.bak-*

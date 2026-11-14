@@ -100,6 +100,15 @@ node tests/self-model.test.mjs
 - `self(action='evolve', op='apply')` 只改 `flags.json`；改代码、改人设它都做不了，也不该做
 - `self(action='procedures')` 只提炼不执行，真正避开坑要靠 M5 的 `propose` 去读它
 
+## 工具
+
+> 名单来源：所有查询走单入口 `self`（action 分流）；`self_*` 是仍注册的兼容别名。
+
+| 工具 | 说明 |
+|---|---|
+| `self` | 单入口：status / capabilities / limits / history / check / metrics / flags / evolve / procedures / context |
+| `self_status … self_context` | 兼容别名，等价于 self(action=…)；新代码用单入口 |
+
 ## 变更记录
 
 

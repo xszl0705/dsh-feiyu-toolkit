@@ -1,7 +1,7 @@
 {
   "id": "pet-hub",
   "package": "dsh-pet-hub",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "intent": "桌宠 UI 与本地 HTTP 接口：状态、客户端脚本、宠物页",
   "inputs": [
     "http-request"
@@ -22,6 +22,21 @@
       "code": "WEB_SERVER_UNAVAILABLE",
       "meaning": "宿主 webServer 未就绪",
       "retry": "延迟重试挂载"
+    },
+    {
+      "code": "CONFIG_UNREADABLE",
+      "meaning": "pet 配置读不到或解析失败",
+      "retry": "用内置默认值，面板照常起"
+    },
+    {
+      "code": "HTTP_ERROR",
+      "meaning": "面板 HTTP 请求失败（上游未起 / 端口变）",
+      "retry": "返回 502 并记日志，不重试"
+    },
+    {
+      "code": "STATUS_STALE",
+      "meaning": "state.json 超过阈值未更新（桌宠未运行）",
+      "retry": "面板标 offline，等下次轮询"
     }
   ],
   "scope": [
@@ -31,5 +46,5 @@
     "cpu": "low",
     "network": "localhost"
   },
-  "changedAt": "2026-11-01T23:55:00+08:00"
+  "changedAt": "2026-11-14"
 }

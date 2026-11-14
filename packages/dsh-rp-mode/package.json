@@ -1,0 +1,57 @@
+{
+  "name": "dsh-rp-mode",
+  "version": "0.6.7",
+  "description": "对话扮演专用模式（agent preset id: roleplay）：人设、对话、联网、角色卡库（rp_card + 图形化选卡面板）与独立扮演记忆（rp_memory），并挂入跑团工坊/GM工坊/跑团引擎工具；没有终端、文件与代码工具。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./lib/store": "./lib/store.js",
+    "./lib/card": "./lib/card.js",
+    "./lib/tools": "./lib/tools.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "config.example.json",
+    "channel.json",
+    "cordis.patch.yml",
+    "README.md",
+    "capability.json",
+    "tools"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "slots"
+      ],
+      "external": [
+        "react"
+      ]
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "agent-preset",
+    "roleplay",
+    "扮演",
+    "rp"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git"
+  },
+  "author": "xszl0705"
+}

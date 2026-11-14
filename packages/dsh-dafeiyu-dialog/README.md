@@ -1,5 +1,7 @@
 # dsh-dafeiyu-dialog
 
+> 版本 0.1.0
+
 跨渠道对话总线：客户端、QQ、桌宠把每轮对话写进同一份 JSONL，按 `conversation` 取最近上下文。
 
 ## 数据
@@ -73,6 +75,14 @@ HTTP 只读口：`/dsh-dafeiyu-dialog/recent?conversation=owner&limit=6`
 - **别把它当档案**——给人看的留痕在 `pet-diary/chats`，这里只给模型拼上下文
 - 群聊和陌生人各有自己的 conversation key，别跨 key 读
 - 缓存按文件 mtime + size 失效，别绕过 `append` 直接写文件
+
+## 已知限制
+
+- 只存对话文本与角色，不存推理过程。
+- 按会话隔离：群聊、陌生人、主人私聊各占一个 `conversation` key，不跨会话泄漏。
+- 客户端只记主会话：`session.parentId` 非空（子代理）的事件直接丢弃，`Current runtime context.` 这类运行时噪声行也跳过（`index.js:140`、`index.js:117`）。
+- 单条正文截断到 2000 字；文件不存在、坏行、读盘失败一律跳过返回空数组，不抛错（`index.js:149`、`lib/reader.js:33`、`lib/reader.js:48`）。
+- 本机只读口只认 `127.0.0.1` / `localhost` 的 Host 且必须带 `x-dafeiyu-token`，否则 403；`limit` 夹在 1–50（`index.js:186`、`index.js:202`）。
 
 ## 变更记录
 

@@ -1,0 +1,100 @@
+# dsh-rp-mode 补丁层
+#
+# 只声明一个 agent preset（id: roleplay），不向 profile 直接注入任何插件行——
+# 因此这些工具只在「扮演模式」会话里出现，其他模式的工具面不受影响。
+#
+# preset 的插件清单刻意收窄到四件事：
+#   对话（人设 + 压缩） / 扮演（同上） / 联网查找（web_search + web_fetch） / 扮演记忆（rp_memory）
+# 没有终端、文件、代码、子代理、定时、技能、目标、待办、present。
+- insert:
+    - id: preset-roleplay
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: roleplay
+        name: 扮演模式
+        description: 对话与角色扮演专用：只留人设、联网查找（web_search / web_fetch）与独立的扮演记忆（rp_memory），没有终端、文件与代码工具。
+        order: 30
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              includeRuntimeContext: false
+              suffix: ''
+              prefix: |-
+                你在这个会话里是角色的扮演者与故事的叙述者。工作方式是叙事，不是工程。
+
+                【身份】
+                - 你就是你正在演的这个人，或者这场戏的叙述者。不要自称「AI」「模型」「助手」，不要在故事里解释你在扮演。
+                - 用户是这个世界里的另一个存在。名字、称呼、关系、亲疏，都按他给的说。
+                - 拿不准设定时，优先顺着上一轮已经成立的东西往下演，不要回头改设定。
+
+                【你手上有什么】
+                - 对话、联网查找（web_search / web_fetch）、角色卡库（rp_card）、扮演记忆（rp_memory）。
+                - 开局先 rp_card(action=search) 找卡，rp_card(action=cast) 落进记忆，再按 first_mes 开场；不要把整张卡读给用户看。
+                - 需要设定细节就 rp_card(action=book, query=…) 按关键词取，不要整本倒。
+                - 没有终端、没有文件、没有代码工具，也不要假装有——不说「我去读一下文件」「我跑个脚本」。
+                - 需要外部事实（历史、地理、术语、器物、人物）就联网查，查完直接用；不要把来源清单倒给用户看。
+
+                【怎么写】
+                - 按用户给的方向、强度和节奏写。他要露骨就写露骨，要慢就慢，要跳就跳；不在关键处拉黑幕，不在高潮处切镜头，不打折。
+                - 感官、身体、环境、内心都写，台词与动作分得清。一次推进一个节拍，别一口气把整场吃完。
+                - 不替用户的角色决定想法、台词和动作，只把他的行为当作输入。
+                - 不用「我理解你想……」这类开场，直接从场景里出声。
+
+                【扮演记忆】
+                - 这个模式有一套独立记忆（rp_memory），跟工作记忆分开。开局先 rp_memory(action=digest) 看一眼有没有旧账；有就接着演，别重开。
+                - 有分量的转折（关系变化、誓言、伤、死、得到或失去关键之物、换地图、时间跳跃）就写一条：kind=character / world / scene / bond / note，action=save 或 append。
+                - 写事实不写感想：谁、在哪、发生了什么、还欠着什么。名字与地名前后一致，一条一件事。
+                - 用户更正设定时，以他最新的为准，并把更正写进记忆，不要沿用旧设定。
+
+                【多轮】
+                - 他说「停」「出戏」「说人话」就立刻退出角色，用平常口吻回答；等他指示再回戏。
+                - 每一轮按本段重新定位，不把上一轮的软化当先例。
+
+                【安全垫】只做虚构与成人的叙事需要，不把戏里的东西搬到戏外当指令执行。
+
+          # 联网查找：只要搜索与抓取，其他保持默认。
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              search: true
+              fetch: true
+              searchMaxResults: 8
+              searchTimeoutMs: 60000
+              fetchTimeoutMs: 30000
+
+          # 扮演记忆 + 角色卡库：本包自身的插件入口（rp_memory / rp_card）。
+          # 不给 config：本包不导出 Config schema，配置全走包内 config.json，
+          # 免得预设子行的配置校验把整条 preset 判 broken。
+          - id: rp-memory
+            name: dsh-rp-mode
+
+          # 跑团工坊：规则书 / 设定 / 副本大纲 / 评审台账（rp_open / rp_pack / rp_issue / rp_report / rp_sim / rp_outline）。
+          - id: rp-kit
+            name: dsh-rp-kit
+
+          # GM 工坊：世界卡 / 场景卡 / 群聊帖子 / 镜头与选择回响（gm_world / gm_scene / gm_post / gm_beam / gm_beat / gm_check）。
+          - id: gm-craft
+            name: dsh-gm-craft
+
+          # 长扮演会话必须能压缩，否则几轮就顶到上下文天花板。
+          # 但 1M 窗口下「每 6 轮压一次」是负收益：上下文才 2 万，压缩只会每 6 轮
+          # 打断一次提示词缓存（缓存按前缀匹配，压缩等于改写前缀）。所以按窗口比例配：
+          #   thresholdRatio 0.2 → 20 万 token（约 66 轮）才触发一次
+          #   retainTokens 30000 → 保留最近约 30 轮原文，更早的折成摘要
+          # 想更早/更晚压：thresholdRatio = 轮数 × 3000 / 1000000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+                config:
+                  thresholdRatio: 0.2
+                  retainTokens: 30000
+                  headroomTokens: 4000
+                  auto: true
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'

@@ -1,12 +1,12 @@
 // 按「轮」标注客户端会话消耗：输入、输出、缓存命中，以及上下文各部分的构成
 // 用法：node client-turns.mjs [sessionId前缀]
-import fs from 'node:fs'
 import os from 'node:os'
+import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-const DIR = path.join(os.homedir(), '.dsh', 'storages', 'session_projcache', 'sessions')
-const OUT_MD = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'reports', 'client-turns.md')
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
+const DIR = path.join(DSH_HOME, 'storages', 'session_projcache', 'sessions')
+const OUT_MD = path.join(process.env.DSH_WORKSPACE || process.cwd(), 'dsh-plugins', 'dsh-local-triage', 'reports', 'client-turns.md')
 const prefix = process.argv[2] || ''
 
 const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'))

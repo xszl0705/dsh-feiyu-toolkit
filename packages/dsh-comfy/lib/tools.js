@@ -91,7 +91,7 @@ export function createTools(config = {}) {
   const comfy = {
     name: 'comfy',
     description:
-      '本地 ComfyUI：action=status 看服务/显存/底模与 ControlNet；generate 文生图（prompt 必填，图里要准确文字请用 draw_chart）；controlnet 用参考图锁构图重绘（imagePath+prompt 必填）。服务没起只报 OFFLINE，不自动拉起。',
+      '本地 ComfyUI：action=status 看服务/显存/底模与 ControlNet；generate 文生图（prompt 必填，图里要准确文字请用 draw(kind=chart)）；controlnet 用参考图锁构图重绘（imagePath+prompt 必填）。服务没起只报 OFFLINE，不自动拉起。',
     parameters: {
       type: 'object',
       properties: {

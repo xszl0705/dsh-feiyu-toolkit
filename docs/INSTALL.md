@@ -7,7 +7,7 @@
 
 ## 0. 先说清楚：这不是一键安装包
 
-23 个插件里，**15 个挂工具**，**8 个是服务层**（不挂工具，被别的插件调用）。其中 `dsh-plugin-kit` 是所有插件的公共底座，必须最先装。
+31 个插件里，**22 个挂工具**，**9 个是服务层**（不挂工具，被别的插件调用）。其中 `dsh-plugin-kit` 是所有插件的公共底座，必须最先装。
 
 装完并不等于全功能可用。分三种情况：
 
@@ -167,6 +167,14 @@ dsh plugin add link:<你的仓库目录>/packages/dsh-draw
   dsh-service-autostart  服务自愈（可选，但 qq 装了它就建议一起装）
   dsh-pet-hub / dsh-pet-sync   桌宠（需要桌宠程序本体）
   dsh-feiyu-look / dsh-feiyu-mood-lite   界面与心情
+
+第 5 层 · 扩展（各自独立，按需装）
+  dsh-econ-news    经济新闻采集与简报（工具只在 research 模式可见）
+  dsh-evidence     舆情采集与事实核验
+  dsh-rp-kit / dsh-rp-mode / dsh-gm-craft   扮演与 GM 创作
+  dsh-step-saver   会话瘦身（读盘工具 + slim 白名单 + 按需挂载）
+  dsh-fyrunner     托管 FyRunner 本地推理服务
+  dsh-lan-web      把 web 界面开放到局域网
 ```
 
 **最省事的最小组合**（只要聊天增强）：

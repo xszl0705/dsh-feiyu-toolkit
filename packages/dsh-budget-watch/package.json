@@ -1,7 +1,7 @@
 {
   "name": "dsh-budget-watch",
-  "version": "0.1.1",
-  "description": "看会话 token 预算：步数、累计消耗、每步均值、缓存命中率，超线给交接建议。纯只读，不切会话（切会话是开关，归人）。",
+  "version": "0.3.2",
+  "description": "看会话 token 预算：步数、累计消耗、最近上下文规模、缓存命中率，按步数+上下文双条件给交接建议；shape 动作可定位缓存前缀断点。纯只读。",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -14,7 +14,9 @@
     "lib",
     "config.json",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "capability.json",
+    "config.example.json"
   ],
   "dsh": {
     "bundle": {
@@ -33,6 +35,9 @@
     "node": ">=20"
   },
   "license": "MIT",
+  "scripts": {
+    "test": "node tests/budget.test.mjs && node tests/threshold-parity.test.mjs"
+  },
   "peerDependencies": {
     "dsh-plugin-kit": ">=0.1.0"
   },
@@ -40,5 +45,12 @@
     "dsh-plugin-kit": {
       "optional": true
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git",
+    "directory": "packages/dsh-budget-watch"
+  },
+  "author": "xszl0705",
+  "homepage": "https://github.com/xszl0705/dsh-feiyu-toolkit/tree/main/packages/dsh-budget-watch"
 }

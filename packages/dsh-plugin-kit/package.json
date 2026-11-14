@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH 自研插件共用的最小工具集：生命周期、原子写、load.log、等工具就绪。",
   "type": "module",
   "main": "index.js",
@@ -28,5 +28,12 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xszl0705/dsh-feiyu-toolkit.git",
+    "directory": "packages/dsh-plugin-kit"
+  },
+  "author": "xszl0705",
+  "homepage": "https://github.com/xszl0705/dsh-feiyu-toolkit/tree/main/packages/dsh-plugin-kit"
 }

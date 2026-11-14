@@ -1,14 +1,14 @@
 // 客户端工具用量明细：解压会话原始事件流（分帧 zstd），按工具/类别汇总上下文占用
 // 用法：node client-tools.mjs [sessionId前缀]   输出：reports/tool-usage.md
+import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
 import zlib from 'node:zlib'
-import { fileURLToPath } from 'node:url'
 
-const SESSIONS = path.join(os.homedir(), '.dsh', 'sessions')
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
+const SESSIONS = path.join(DSH_HOME, 'sessions')
 const WORKSPACE_DIR = '--E-~5DE5~4F5C~533A--'
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'reports', 'tool-usage.md')
+const OUT = path.join(process.env.DSH_WORKSPACE || process.cwd(), 'dsh-plugins', 'dsh-local-triage', 'reports', 'tool-usage.md')
 const prefix = process.argv[2] || ''
 
 const root = path.join(SESSIONS, WORKSPACE_DIR)

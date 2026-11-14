@@ -145,6 +145,16 @@ AGPL-3.0 是**强 copyleft**。如果 `dsh-naga-tools` 复制了 NagaAgent 的�
 
 ---
 
+## 二·D、本仓内部的相互借鉴
+
+同一作者的不同包之间也有互相借鉴，列出来免得读者以为是巧合：
+
+| 被借鉴 | 借鉴方 | 借鉴了什么 |
+|---|---|---|
+| `dsh-rp-mode` | `dsh-step-saver` | 「按模式注册一套 channel + 收窄工具面 + 按需挂回」的手法。`dsh-step-saver` 把同一套做法从扮演模式搬到一般模式：四个低体积工具（`run_node` / `ls_tree` / `file_outline` / `smart_grep`）+ `toolbox` 按需挂载 + 步数纪律提示词 |
+| `dsh-rp-mode` | `dsh-evidence`、`dsh-econ-news` | 独立 agent preset 的挂载写法：根行 `disabled: true` + `insert` 一个 preset，工具只在该模式可见。机制本身来自 DSH 官方的 `@deepseek-ai/dsh-agent-preset` |
+| `dsh-plugin-kit` | 其余 30 个包 | 生命周期、原子写、`load.log` 标记、等工具就绪这些公共能力 |
+
 ## 三、算法与标准
 
 | 来源 | 用在 | 说明 |
@@ -168,6 +178,7 @@ AGPL-3.0 是**强 copyleft**。如果 `dsh-naga-tools` 复制了 NagaAgent 的�
 | Pillow | HPND | https://python-pillow.org/ |
 | NumPy | BSD-3-Clause | https://numpy.org/ |
 | SQLite / FTS5 | Public Domain | https://www.sqlite.org/fts5.html |
+| FyRunner 跑团引擎（`packages/dsh-fyrunner/runtime/`） | **随包分发的服务端代码**，许可与出处以其原项目为准 | `dsh-fyrunner` 只加了一层 Node 托管壳（起停 / 状态 / 开窗 / 日志）；`runtime/` 下的 Python 服务端不是本仓原创，若原项目与本仓作者不同，署名与许可文本按其仓库补齐 |
 
 ### 可选的运行时集成
 
@@ -186,6 +197,15 @@ AGPL-3.0 是**强 copyleft**。如果 `dsh-naga-tools` 复制了 NagaAgent 的�
 | 腾讯财经（`qt.gtimg.cn` / `web.ifzq.gtimg.cn`） | `dsh-finance-learn` 行情与 K 线 | 公开接口，**仅供个人学习研究，不构成投资建议** |
 | wttr.in | `dsh-naga-tools` 天气 | https://github.com/chubin/wttr.in |
 | DeepSeek API | `dsh-vision` 图片理解 | 图片会上传到 DeepSeek 服务器 |
+| IMF（`api.imf.org` SDMX dataflow） | `dsh-econ-news` 世界经济展望（WEO）数据流 | 公开 API，只取指标与预测值 |
+| IMF 站点正文（`imf.org`） | `dsh-econ-news` 文章全文 | 只在宿主 web 通道可达；本地留存，不再分发 |
+| WSJ / FT 的公开 RSS | `dsh-econ-news` 选题与摘要 | **只存标题、摘要与原文链接**，不复分发正文；全文抓取受各家条款限制，失败就记缺口 |
+| 美联储 / BEA / USTR / NBER / arXiv / ECB / World Bank | `dsh-econ-news` 政策与学术条目 | 公开 RSS 与公开 API |
+| 中国人民银行 / 国家统计局 / 财政部 / 商务部 / `gov.cn` | `dsh-econ-news` 中文政策条目 | 公开页面，按原始发布口径引用 |
+| 华尔街见闻（`api-one.wallstcn.com`） | `dsh-econ-news` 的备案通道（FT/WSJ 断流时的替代） | 公开接口，只作补位 |
+
+> 全部源都只走公开接口 / 公开 RSS，按各站条款使用；抓到的正文与摘要只落本机存档，供个人研究，**不再分发**。
+> 拿不到的源会明确写进简报的「缺口」段，不用别的内容顶替。
 
 ---
 

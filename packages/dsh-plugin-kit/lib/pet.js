@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { isAlive, listOwnProcesses, stopOwnProcess } from './process.js'
 
 /**
- * 插件不再写死旧的写死路径。
+ * 插件不再写死旧的 <workspace>\github\... 路径。
  * 排序：DSH_PET_DIR 环境变量 → 插件根 config.json 的 petDir → <plugins 根>/_pets/deepseek-dafeiyu-pet
  *
  * 2026-11-04 修复：kit 通过 dsh-plugins/node_modules 的 junction 被 import 时，

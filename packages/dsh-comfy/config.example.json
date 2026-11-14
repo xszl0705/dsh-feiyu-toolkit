@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "baseUrl": "http://127.0.0.1:8188",
+  "outputDir": "",
+  "comfyOutputDir": "",
+  "comfyInputDir": "",
+  "defaultCheckpoint": "anything-v5-PrtRE.safetensors",
+  "defaultControlnet": "control_v11p_sd15_canny_fp16.safetensors"
+}

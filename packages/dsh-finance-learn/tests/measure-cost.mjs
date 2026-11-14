@@ -2,9 +2,8 @@
  * 消耗测量：工具定义体积（每轮固定注入）+ 单次调用的输出体积。
  * 结果落文件，stdout 会丢。
  */
-import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import fs from 'node:fs'
 import { createTools } from '../lib/tools.js'
 
 const tools = createTools(null) // execute 才会用到 store，这里只量定义
@@ -56,4 +55,4 @@ out.estimates = {
   quote3Tokens: { conservative: Math.round(out.outputSamples.quote3Chars / 2.5), likely: Math.round(out.outputSamples.quote3Chars / 3.6) },
 }
 
-fs.writeFileSync(path.join(os.tmpdir(), 'finance-learn-cost.json'), JSON.stringify(out, null, 2), 'utf8')
+fs.writeFileSync(path.join(process.cwd(), '_tmp', 'finance-learn-cost.json'), JSON.stringify(out, null, 2), 'utf8')

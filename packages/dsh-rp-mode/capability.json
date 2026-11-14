@@ -1,0 +1,154 @@
+{
+  "id": "rp-mode",
+  "package": "dsh-rp-mode",
+  "version": "0.6.7",
+  "intent": "在 DSH 里提供「扮演模式」这个 agent preset：只做对话、角色扮演、角色卡读取、联网查找、扮演记忆的会话形态，并把跑团工坊、GM 工坊、跑团引擎的工具挂进该会话。本包注册 rp_memory 与 rp_card，后者负责多根卡库、PNG 图片卡与「随时切换当前角色/背景」。",
+  "inputs": [
+    "action",
+    "kind",
+    "name",
+    "body",
+    "tags",
+    "query",
+    "id",
+    "limit",
+    "group",
+    "full"
+  ],
+  "outputs": [
+    "ok",
+    "action",
+    "total",
+    "byKind",
+    "count",
+    "hits",
+    "rows",
+    "lines",
+    "id",
+    "kind",
+    "name",
+    "tags",
+    "updated",
+    "group"
+  ],
+  "tools": [
+    "rp_memory",
+    "rp_card"
+  ],
+  "presets": [
+    "roleplay"
+  ],
+  "limits": [
+    "0.6.0 起工具面只由 cordis.patch.yml 的行清单决定：本包 inject=['tools'] 后在 apply 里同步注册 rp_card / rp_memory（与官方 tool-web 同构），不包 ToolsService.view、不往 agent.ctx 补注册。0.5.13-0.5.15 的 view 出口注入与 agent 层补注册实测无效（注册 2/2 仍 view=2），只在 config.json legacyChannel=true 时作为回滚路径保留",
+    "0.6.3 起注册路径扩到 4 条（ctx.tools / ctx.get / ctx.root.tools / ctx.root.get）：宿主 register() 的落层由 scopeOf(this.ctx) 决定，view(scope) 只 merge global + 祖先链，落错 scope 层时注册成功但 agent 看不见；注册后回读 view(undefined) 的结果写进 toolguard.log 的 [register] 回读 global view=N 命中[…] 一行，命中即为 global 层（任何 agent 都能 merge 到）",
+    "世界书正文不可跳过（2026-11-10 用户硬性要求）：pick 之后、开场之前必须先 rp_card(action=book) 取与首幕相关的条目正文；设定只能来自卡内世界书，不许模型自编。省调用步数不得以省略 book 为代价——开局固定 2-3 步（pick → book → 开场介绍）",
+    "preset id 固定为 roleplay；改 preset 的插件行或人设要重启宿主才重新解析，改 config.json 与 lib/ 因走 junction 只需重开会话",
+    "preset 挂 7 行（persona / tool-web / rp-memory / rp-kit / gm-craft / fyrunner / compaction），模型可见工具就是这些行注册出来的那批（0.6.0 起不再有运行时过滤层）；channel.json 的 16 项清单只用于提示词说明与自检对账",
+    "工具面收窄靠 lib/channel.js 包装 ToolsService.view（实例 + 原型）：命中 channel.json 的 preset 才过滤，非命中 fail-open；不写 app.asar，宿主升级不会丢文件",
+    "tools.restrict 路线已废弃：它只认全局层与祖先链，base 工具在 agent 自身层，砍不到（实测 deny 66 个名字只认出 qq / sticker）",
+    "卡自带开场优先复现：openingsOf() 把 first_mes + alternate_greetings 列成清单（实测 96% 有 first_mes、约一半带 3 个备选），pick/cast 给 #1 原文，其余用 rp_card(action=opening, index=N) 换；有开场照原文复现只在末尾补礼仪，无开场按同一套礼仪现写",
+    "占位符：fillPlaceholders 把 {{user}}/<user> → 「你」、{{char}}/<char> → 卡名（以前只做中和成 { {user} }，读着别扭）",
+    "旧记忆清理：tools/clean-rp-html.mjs 默认 dry-run，--apply 才写并整份备份到 ~/.dsh/rp-memory-htmlfix-<时间戳>/；只动 .md 与 .json，跳过 .trash",
+    "诊断以 channel.log 为准：[register] 失败名单、[tools] 保留/砍掉/白名单未命中的名单都在里面；toolguard.log 是旧路线遗留",
+    "channel.json 改完重开会话即生效，不用重启宿主；preset 行本身改动仍需重启",
+    "卡库面板只有一套宽屏版式（精简布局 2026-11-09 已删除）：桌面 min(1180px,94vw)×min(760px,90vh)、网格 172px、右侧 320px 详情；窄视口（<760px）自动退化为铺满竖排、网格 104px、筛选 22vh、详情没选卡时 0 高度；悬浮按钮桌面右下 24px、窄屏右上（right 8px / top 84px）以避开手机发送键",
+    "preset 里 rp-memory 行故意不传 config：本包不导出 Config schema，配置全走包内 config.json，避免子行配置校验把整条 preset 判 broken",
+    "没有终端、文件、代码、子代理、定时、技能、目标、待办、present——刻意收窄",
+    "扮演记忆与工作记忆（memory_* / .dsh-memory）完全分开，目录默认 ~/.dsh/rp-memory",
+    "记忆是 Markdown 分文件，id 由 kind+name 哈希：同名 save 覆盖、append 续写、forget 进 .trash",
+    "卡库多根：默认自建库（rp-kit/cards-json）+ 下载库（<downloads>/jueseka2，按需自配）",
+    "PNG 卡只认 tEXt/iTXt 里的 chara（V2）或 ccv3（V3）；两者都没有的 PNG 是插图，扫描时跳过",
+    "压缩包（zip/rar/7z，jueseka2 里有 40 多个）内的卡扫不到，需要先解压",
+    "首次扫描下载库要几十秒（解析每个 PNG 的头部 128KB / 尾部 1MB）；之后按 mtime+size 命中索引，秒级",
+    "索引落 ~/.dsh/rp-memory/card-index.json；写不进去只影响下次速度，不影响本次结果",
+    "扫描是只读的：不在下载目录写任何文件（索引写在自己家目录）",
+    "单卡最大 73KB：read 默认截断（设定 400 字 + first_mes 1500 字），full=true 才给 mes_example / 卡内指令 / 备选开场",
+    "card 定位先用文件名，同名多张取第一张并在 read 里提示",
+    "book 只做关键词命中，没有向量召回",
+    "世界书目录：pick/cast 返回最多 20 条（条目名｜关键词｜开头 40 字｜字数），不含正文；超出提示「另有 N 条」，翻全量得按关键词取",
+    "book 一次可问多个词：query 用空格/顿号/逗号分隔，或传 queries 数组；多词各查一遍、按命中词数排序、同一模板只留一份；limit 默认 10、上限 30",
+    "cast/switch 会把卡正文写进扮演记忆，此后以记忆为准；json 改动不会同步到已 cast 的条目",
+    "当前角色/背景写 ~/.dsh/rp-memory/current.json，由提示词段每轮注入，有 5 秒缓存（刚 switch 可能晚一轮出现）",
+    "persona 关闭了 runtime context（includeRuntimeContext: false）：扮演会话不注入 cwd、时间等开发上下文",
+    "标签索引通道：<下载库>\\_cardindex\\cards.jsonl 存在时 rp_card 的 search/list/read 直接读它（加载 0.1s、搜索 30ms），缺失或损坏自动退回全库扫描（9918 张首次扫描数分钟）。索引由该目录的 build_index.py 生成，标签规则改动后需重建；tags 过滤只认索引里的细标签，不认卡内自由标签。",
+    "会话级角色锁：一张卡一个会话只选一次（session-locks.json 按 exec.agent.session.id 记，30 天过期）。锁定后 pick/switch/cast 别的卡返回 ok=false + locked=true；要换角色必须新建会话，没有中途解锁入口。拿不到 session id 时不锁（退化为旧行为），此时无法保证单卡。",
+    "图形化选卡面板：右下角浮层按钮 + 全屏卡片墙，数据来自 lib/webui.js 的三条只读路由（/dsh-rp-mode/cards、/cover、/meta）。面板只能把 pick 指令填进输入框，不能直接改会话锁；封面直读卡库原图，单张 0.5-2MB，仅放行卡库根下 png/jpg/webp。",
+    "面板只在 preset=roleplay 的会话渲染（读 session.projectionValues.agentPreset，读不到 fail-open）；面板走 HTTP，不注册工具、不加提示词，对每轮 token 零增量。",
+    "独立卡库页 /dsh-rp-mode/picker（0.5.9）：给不渲染网页版的宿主用（DSH Go 走 SSH / DSH Remote 时注入版面板不出现）。纯静态 HTML + /cards 与 /meta 两条只读路由，不依赖 WebSocket；选卡后复制 rp_card(action=pick, name=\"…\") 供用户粘贴进客户端，不直接改会话锁。",
+    "面板显示会话锁：meta 端点带 session 参数读 session-locks.json，只读不写；锁定提示不会阻止查询与浏览。",
+    "封面缩略图：_cardindex/thumbs/<id>.webp（320px），列表用缩略图、详情用原图；缩略图缺失自动回退原图，不影响可用性。",
+    "标签体系六组 195 个（body 30 / persona 20 / role 35 / relation 16 / kink 72 / scene 22），按关键词命中打标，阈值 1 次命中；高误命中词（露出/强制/惩罚/羞辱/服从/踩踏）已收紧为组合词。",
+    "开场取 first_mes 与 alternate_greetings 合成清单：pick/cast 给 #1 原文（上限 8000 字），其余用 rp_card(action=opening, index=N) 换全文，不再随机丢弃",
+    "群聊：会话卡组上限 4 张，pick/cast 追加，leave 移出；超出上限返回 locked=true。",
+    "卡自带 regex_scripts 只做提示词侧处理（读出规则名 + 要求不重复状态栏）；DSH 没有 pre-send 钩子，无法真正裁剪历史消息。",
+    "swipe 为提示词级：由用户说「再来一版 / 两版」触发，不是宿主级多候选生成。"
+  ],
+  "failureModes": [
+    {
+      "code": "UNKNOWN_KIND",
+      "meaning": "kind 不在 character/world/scene/bond/note 里",
+      "retry": "返回 ok:false 与可选值列表，不落盘"
+    },
+    {
+      "code": "EMPTY_BODY",
+      "meaning": "save/append 没给 body 或全是空白",
+      "retry": "返回 ok:false，提示补正文"
+    },
+    {
+      "code": "ENTRY_MISSING",
+      "meaning": "read/forget 找不到对应 id 或 name",
+      "retry": "返回 ok:false 并说明没找到"
+    },
+    {
+      "code": "CARD_ROOT_MISSING",
+      "meaning": "卡库路径不存在或没有可解析的卡",
+      "retry": "返回 ok:false 并回显实际使用的根，不猜路径"
+    },
+    {
+      "code": "PNG_NO_CARD",
+      "meaning": "PNG 里没有 chara/ccv3 文本块（是插图不是卡）",
+      "retry": "跳过该文件，索引里记为非卡，不重复解析"
+    },
+    {
+      "code": "CARD_PARSE_FAILED",
+      "meaning": "单个卡 JSON 或 base64 载荷解析失败",
+      "retry": "loadCard 返回 null，不影响其余卡"
+    },
+    {
+      "code": "INDEX_WRITE_FAILED",
+      "meaning": "card-index.json 写不进去",
+      "retry": "本次照常返回结果，只损失下次的加速"
+    },
+    {
+      "code": "SECTION_UNREGISTERED",
+      "meaning": "宿主没有 systemPrompt.section（版本差异）",
+      "retry": "只跳过提示词段，工具照常注册，记 warn 日志"
+    },
+    {
+      "code": "TOOLS_LATE",
+      "meaning": "apply 早于 tools 服务就绪",
+      "retry": "每 250ms 轮询，60 秒超时后放弃并记日志"
+    },
+    {
+      "code": "CHANNEL_FAILOPEN",
+      "meaning": "通道判定拿不到 preset、channel.json 缺失/损坏、或过滤后为空",
+      "retry": "一律放行原工具面并写 channel.log；宁可工具多，不让会话变成零工具"
+    },
+    {
+      "code": "CHANNEL_VIEW_SHAPE",
+      "meaning": "宿主升级后 ToolsService.view 返回结构变化，过滤器抛错",
+      "retry": "catch 后返回原视图并记 [tools] 过滤抛错；功能退化为全量工具面，不影响扮演"
+    }
+  ],
+  "scope": [
+    "owner",
+    "private",
+    "session"
+  ],
+  "cost": {
+    "cpu": "medium",
+    "network": "none",
+    "tokens": "medium"
+  },
+  "changedAt": "2026-11-08"
+}

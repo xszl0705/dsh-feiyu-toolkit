@@ -6,7 +6,7 @@
  *   2. 每任务观测 —— 是否出现 traceId 字段
  *   3. 数据新鲜度 —— 最近一条记录是否晚于 reply.js 的修改时间
  *
- * 用法：ELECTRON_RUN_AS_NODE=1 "E:\dsh\DeepSeek Harness.exe" tools\verify-cost.mjs
+ * 用法：ELECTRON_RUN_AS_NODE=1 "<DSH_HOME>/DeepSeek Harness.exe" tools\verify-cost.mjs
  * 输出：reports/verify-cost.md，退出码 0=通过 / 1=待观察或失败
  */
 
@@ -16,7 +16,7 @@ import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const ROOT = path.resolve(HERE, '..', '..', '..')          // E:\工作区
+const ROOT = path.resolve(HERE, '..', '..', '..')          // 工作区根（可移植：按脚本位置上溯三级）
 const STATS = path.join(os.homedir(), '.dsh', 'dafeiyu', 'stats')
 const OUT = path.join(HERE, '..', 'reports', 'verify-cost.md')
 

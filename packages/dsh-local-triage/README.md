@@ -1,5 +1,7 @@
 # dsh-local-triage
 
+> 版本 0.1.0
+
 本地小模型分诊 + 确定性压缩。两个能力可以分开用。
 
 ```
@@ -55,9 +57,9 @@ tests/             rules / compress 单测 + 50 条回归集
 
 ```powershell
 $env:ELECTRON_RUN_AS_NODE='1'
-& "E:\dsh\DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tests\rules.test.mjs
-& "E:\dsh\DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tools\eval-triage.mjs --real   # 真实样本
-& "E:\dsh\DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tools\eval-triage.mjs          # 构造样本
+& "<DSH_HOME>/DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tests\rules.test.mjs
+& "<DSH_HOME>/DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tools\eval-triage.mjs --real   # 真实样本
+& "<DSH_HOME>/DeepSeek Harness.exe" dsh-plugins\dsh-local-triage\tools\eval-triage.mjs          # 构造样本
 ```
 
 结果：`reports/rules.test.json`、`reports/triage-eval-real-latest.md`、`reports/triage-eval-synthetic-latest.md`。
@@ -90,6 +92,13 @@ $env:ELECTRON_RUN_AS_NODE='1'
 - ① 真实样本 100 条：2026-10-31 已跑（全链路 90%，false-local 0，frontier 下调 2.3%）
 - ② verifyx 验证：2026-11-05 完成（插件加载正常、`/dsh-feiyu-brain/route` 可用、默认关行为不变）
 - ③ 灰度：`route.tier` 已进 `dsh-feiyu-self` 的 `DEFAULT_FLAGS`，默认 0%，按会话分桶放量
+
+## 已知限制
+
+- 本地模型只做分诊，不做生成——生成永远交给云端。
+- 压缩是纯代码（截断/投影/分页/落盘/报错裁剪），不花模型 token。
+- 本地不可用时 fail-open：直接放行到云端，不阻塞请求。
+- 不改写内容语义，只裁剪体积。
 
 ## 变更记录
 
